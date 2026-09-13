@@ -65,6 +65,7 @@ export function DesktopMenu() {
 export function Header() {
   const path = usePathname();
   const router = useRouter();
+  const isLyricsPage = /^\/(hindi|nepali|english)\/[^/]+$/.test(path);
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
@@ -89,6 +90,7 @@ export function Header() {
           </button>
         </nav>
       )}
+      {path !== "/" && !isLyricsPage && <DesktopMenu />}
       <nav className="bottom-nav" aria-label="App navigation">
         {items.map((i) => (
           <Link
