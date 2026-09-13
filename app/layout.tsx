@@ -1,3 +1,3 @@
-import type { Metadata } from "next"; import { Header } from "@/components/Header"; import "./globals.css";
+import type { Metadata } from "next"; import { Header } from "@/components/Header"; import { PWARegister } from "@/components/PWARegister"; import "./globals.css";
 export const metadata: Metadata = { title: { default: "SongLight — Christian Lyrics", template: "%s · SongLight" }, description: "Find Hindi, Nepali, and English Christian song lyrics in original and Roman scripts.", manifest: "/manifest.webmanifest" };
-export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <><Header/><main>{children}</main><footer className="site-footer"><span>✦ SongLight</span><span>Lyrics for every heart, in every language.</span></footer></>; }
+export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) { return <html lang="en"><body><PWARegister/><Header/><main>{children}</main><footer className="site-footer"><span>✦ SongLight</span><span>Lyrics for every heart, in every language.</span></footer></body></html>; }
