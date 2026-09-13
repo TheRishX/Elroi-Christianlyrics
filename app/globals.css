@@ -742,6 +742,16 @@ svg {
   color: var(--muted);
   line-height: 1.7;
 }
+.page-wordmark {
+  justify-content: flex-start;
+  gap: 10px;
+  font-size: clamp(44px, 5.2vw, 76px);
+  letter-spacing: -3.5px;
+  margin: 18px 0 18px;
+}
+.page-wordmark .word-tunes {
+  letter-spacing: -2px;
+}
 .results {
   padding-top: 50px;
   padding-bottom: 70px;

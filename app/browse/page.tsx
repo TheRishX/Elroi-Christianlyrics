@@ -8,7 +8,10 @@ export default async function Browse() {
     <div className="page">
       <section className="language-banner">
         <span className="eyebrow">FIND YOUR NEXT SONG</span>
-        <h1>A world of worship.</h1>
+        <div className="elroi-wordmark page-wordmark" aria-label="Elroi Tunes">
+          <span className="word-elroi">Elroi</span>
+          <span className="word-tunes">Tunes</span>
+        </div>
         <p>Familiar words. New discoveries. All in one place.</p>
       </section>
       <section className="section">
