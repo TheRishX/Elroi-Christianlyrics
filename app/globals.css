@@ -1367,7 +1367,12 @@ svg {
   width: min(760px, 90vw);
   height: 360px;
   border-radius: 50%;
-  background: radial-gradient(ellipse, #eef3e8 0%, rgba(248, 250, 246, 0) 70%);
+  background: radial-gradient(
+    ellipse,
+    #e5efdf 0%,
+    #f8f4e8 32%,
+    rgba(248, 250, 246, 0) 72%
+  );
   pointer-events: none;
   animation: ambient-pulse 8s ease-in-out infinite;
 }
@@ -1394,16 +1399,18 @@ svg {
   content: "";
   position: absolute;
   z-index: 0;
-  inset: 12% -8% 4%;
+  inset: 8% -10% 0;
   pointer-events: none;
   background:
-    radial-gradient(circle at 12% 32%, #ad8b4a 0 1px, transparent 2px),
-    radial-gradient(circle at 88% 25%, #708761 0 1px, transparent 2px),
-    radial-gradient(circle at 18% 78%, #708761 0 1px, transparent 2px),
-    radial-gradient(circle at 82% 72%, #ad8b4a 0 1px, transparent 2px),
-    radial-gradient(circle at 50% 8%, #d4bd87 0 1px, transparent 2px);
-  opacity: 0.35;
-  filter: blur(0.2px);
+    radial-gradient(circle at 8% 30%, #ad8b4a 0 2px, transparent 3px),
+    radial-gradient(circle at 92% 24%, #708761 0 2px, transparent 3px),
+    radial-gradient(circle at 15% 78%, #708761 0 1.5px, transparent 3px),
+    radial-gradient(circle at 86% 76%, #ad8b4a 0 2px, transparent 3px),
+    radial-gradient(circle at 50% 5%, #d4bd87 0 2px, transparent 3px),
+    radial-gradient(circle at 28% 12%, #b58b42 0 1.5px, transparent 3px),
+    radial-gradient(circle at 73% 54%, #839a72 0 1.5px, transparent 3px);
+  opacity: 0.58;
+  filter: blur(0.1px);
   animation: sparkle-drift 6s ease-in-out infinite;
 }
 .hero-copy-search > * {
@@ -1553,13 +1560,15 @@ svg {
   padding: 12px 13px 12px 28px;
   box-shadow:
     0 18px 45px #40543816,
-    0 0 0 8px #edf2e850;
+    0 0 0 8px #edf2e850,
+    0 0 42px #b58b4214;
 }
 .hero-search .search-box:focus-within {
   border-color: var(--olive);
   box-shadow:
     0 18px 48px #40543822,
-    0 0 0 8px #e8efe2;
+    0 0 0 8px #e8efe2,
+    0 0 55px #b58b4230;
   transform: translateY(-2px);
 }
 .hero-search .search-box input {
@@ -1680,11 +1689,11 @@ svg {
 @keyframes sparkle-drift {
   0%,
   100% {
-    opacity: 0.2;
+    opacity: 0.3;
     transform: scale(0.96) translateY(3px);
   }
   50% {
-    opacity: 0.55;
+    opacity: 0.85;
     transform: scale(1.04) translateY(-4px);
   }
 }
