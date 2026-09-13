@@ -94,9 +94,9 @@ export function LyricReader({ song }: { song: Song }) {
           <div className="mode-toggle" role="group" aria-label="Lyric display">
             {(
               [
-                { id: "side", label: "Dual" },
-                { id: "original", label: song.language === "hindi" ? "Hindi" : "Nepali" },
-                { id: "roman", label: "English" },
+                { id: "original", label: song.language === "hindi" ? "हिन्दी" : "नेपाली" },
+                { id: "roman", label: song.language === "hindi" ? "Hindi" : "Nepali" },
+                { id: "side", label: "Both" },
               ] as const
             ).map((m) => (
               <button
