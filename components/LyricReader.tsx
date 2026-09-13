@@ -77,26 +77,6 @@ export function LyricReader({ song }: { song: Song }) {
       localStorage.setItem("songlight-font-size", String(next));
     } catch {}
   }
-  async function copy() {
-    try {
-      await navigator.clipboard.writeText(
-        displaySections
-          .map((l) =>
-            [
-              l.label,
-              mode !== "roman" ? l.original : "",
-              hasRoman && mode !== "original" ? l.roman || "" : "",
-            ]
-              .filter(Boolean)
-              .join("\n"),
-          )
-          .join("\n\n"),
-      );
-      setNotice("Lyrics copied");
-    } catch {
-      setNotice("Copy unavailable. Select the lyrics to copy them.");
-    }
-  }
   async function share() {
     try {
       if (navigator.share)
@@ -145,7 +125,6 @@ export function LyricReader({ song }: { song: Song }) {
           >
             A+
           </button>
-          <button onClick={copy}>Copy</button>
           <button onClick={share}>Share</button>
           <BookmarkButton slug={song.slug} />
         </div>
