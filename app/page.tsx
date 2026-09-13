@@ -31,13 +31,6 @@ export default async function Home() {
           <span className="eyebrow">YOUR LANGUAGE. YOUR SONG.</span>
           <h2>Worship in your own words.</h2>
         </div>
-        <div className="language-browse" aria-label="Browse by language">
-          <Icon name="book" size={18} />
-          <span>Browse in</span>
-          <Link href="/hindi">Hindi</Link>
-          <Link href="/nepali">Nepali</Link>
-          <Link href="/english">English</Link>
-        </div>
         <LanguageCards />
       </section>
       <AdSlot placement="homepage_banner" />

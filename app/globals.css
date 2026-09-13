@@ -1597,15 +1597,6 @@ svg {
   justify-content: center;
   margin-top: 18px;
 }
-.language-browse {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  margin: 18px auto 0;
-  color: #8b9284;
-  font-size: 15px;
-}
 .section-nav {
   position: sticky;
   bottom: 0;
@@ -1752,15 +1743,6 @@ svg {
   to {
     background-position: 220% center;
   }
-}
-.language-browse a {
-  color: var(--olive);
-  font-weight: 600;
-}
-.language-browse a + a:before {
-  content: "·";
-  color: #b5bcad;
-  margin-right: 12px;
 }
 .hero-languages a {
   color: var(--olive);
