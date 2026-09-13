@@ -3,8 +3,49 @@ import { useEffect, useState } from "react";
 import { Song } from "@/lib/types";
 import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
+type DisplaySection = { label: string; original: string; roman?: string };
+
+function cleanLegacy(value: string, roman = false) {
+  return value
+    .replace(/\\r\\n|\\n|\\r/g, "\n")
+    .replace(roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g, "\n");
+}
+
+function splitSections(value: string, fallback: string): DisplaySection[] {
+  const text = cleanLegacy(value).trim();
+  if (!text) return [];
+  const heading = /(?:^|\n)\s*(Verse|Chorus|Bridge|Ending|Refrain|Intro|Outro|वर्स|वार्स|कोरस|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो)(?:\s+(\d+))?\s*:?\s*(?:\n|$)/giu;
+  const matches = [...text.matchAll(heading)];
+  const label = (raw: string, number?: string) => {
+    const key = raw.toLocaleLowerCase();
+    const english = /verse|वर्स|वार्स/.test(key) ? "Verse" : /chorus|कोरस/.test(key) ? "Chorus" : /bridge|ब्रिज/.test(key) ? "Bridge" : /ending|एंडिंग/.test(key) ? "Ending" : /refrain|रिफ्रेन/.test(key) ? "Refrain" : /intro|इंट्रो/.test(key) ? "Intro" : "Outro";
+    return `${english}${number ? ` ${number}` : ""}`;
+  };
+  if (!matches.length) return [{ label: fallback, original: text }];
+  const result: DisplaySection[] = [];
+  const firstIndex = matches[0].index ?? 0;
+  if (firstIndex > 0) result.push({ label: fallback, original: text.slice(0, firstIndex).trim() });
+  matches.forEach((match, index) => {
+    const start = (match.index ?? 0) + match[0].length;
+    const end = index + 1 < matches.length ? matches[index + 1].index ?? text.length : text.length;
+    result.push({ label: label(match[1], match[2]), original: text.slice(start, end).trim() });
+  });
+  return result.filter((section) => section.original);
+}
+
+function getDisplaySections(song: Song): DisplaySection[] {
+  const original: DisplaySection[] = [];
+  const roman: DisplaySection[] = [];
+  song.lyrics.forEach((section) => {
+    original.push(...splitSections(section.original, section.label));
+    if (section.roman) roman.push(...splitSections(cleanLegacy(section.roman, true), section.label));
+  });
+  return original.map((section, index) => ({ ...section, roman: roman[index]?.original || song.lyrics[index]?.roman || "" }));
+}
+
 export function LyricReader({ song }: { song: Song }) {
-  const hasRoman = song.language !== "english" && song.lyrics.some((section) => section.roman);
+  const displaySections = getDisplaySections(song);
+  const hasRoman = song.language !== "english" && displaySections.some((section) => section.roman);
   const [mode, setMode] = useState<Mode>("original");
   const [size, setSize] = useState(1);
   const [notice, setNotice] = useState("");
@@ -39,7 +80,7 @@ export function LyricReader({ song }: { song: Song }) {
   async function copy() {
     try {
       await navigator.clipboard.writeText(
-        song.lyrics
+        displaySections
           .map((l) =>
             [
               l.label,
@@ -110,7 +151,7 @@ export function LyricReader({ song }: { song: Song }) {
         </div>
       </div>
       <div className={`lyrics mode-${mode}`} style={{ fontSize: `${size}em` }}>
-        {song.lyrics.map((section, i) => (
+        {displaySections.map((section, i) => (
           <div className="lyric-section" key={i}>
             <h3>{section.label}</h3>
             <div className="lyric-columns">

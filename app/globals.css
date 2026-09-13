@@ -845,19 +845,23 @@ svg {
   font-family: "Noto Sans Devanagari", "DM Sans", sans-serif;
 }
 .lyric-section {
-  margin: 0 0 42px;
+  margin: 0 0 58px;
 }
 .lyric-section:last-child {
   margin-bottom: 5px;
 }
 .lyric-section h3 {
-  font:
-    600 10px "DM Sans",
-    sans-serif;
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  padding: 5px 12px;
+  border-radius: 7px;
+  background: #fbf5e8;
+  font: 700 11px "DM Sans", sans-serif;
   text-transform: uppercase;
   letter-spacing: 1.4px;
   color: var(--gold);
-  margin: 0 0 18px;
+  margin: 0 0 22px;
 }
 .lyric-columns {
   display: grid;
@@ -869,6 +873,7 @@ svg {
   overflow-wrap: anywhere;
   margin: 0;
   font-size: 1.25em;
+  line-height: 1.95;
 }
 .mode-side .lyric-columns {
   grid-template-columns: 1fr 1fr;
