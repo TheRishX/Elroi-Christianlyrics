@@ -1,0 +1,1 @@
+export function AdSlot({ placement }: { placement: string }) { const enabled = process.env.NEXT_PUBLIC_ADS_ENABLED === "true"; if (!enabled) return null; return <div className="ad-slot" data-placement={placement} aria-label="Advertisement">Advertisement</div>; }

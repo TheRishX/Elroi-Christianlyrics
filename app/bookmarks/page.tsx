@@ -1,0 +1,3 @@
+"use client";
+import { useEffect, useState } from "react"; import { songs } from "@/lib/mock-data"; import { SongCard } from "@/components/SongCard";
+export default function Bookmarks(){const [saved,setSaved]=useState<typeof songs>([]);useEffect(()=>{const ids:string[]=JSON.parse(localStorage.getItem("songlight-bookmarks")||"[]");setSaved(songs.filter(s=>ids.includes(s.slug)));},[]);return <div className="page results"><span className="eyebrow">Your collection</span><h1>Saved songs</h1><p className="muted">Bookmarks stay on this device, so your reading list is always close.</p>{saved.length?<div className="song-grid">{saved.map(s=><SongCard key={s.id} song={s}/>)}</div>:<p className="empty">Your saved songs will appear here.</p>}</div>}

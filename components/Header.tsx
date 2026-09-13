@@ -1,0 +1,2 @@
+import Link from "next/link";
+export function Header() { return <header className="site-header"><Link className="brand" href="/"><span className="brand-mark">✦</span><span>Song<span className="brand-accent">Light</span></span></Link><nav><Link href="/hindi">Hindi</Link><Link href="/nepali">Nepali</Link><Link href="/english">English</Link><Link className="bookmark-link" href="/bookmarks">♡ <span className="desktop-only">Saved</span></Link></nav></header>; }

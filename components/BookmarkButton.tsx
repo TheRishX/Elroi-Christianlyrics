@@ -1,0 +1,3 @@
+"use client";
+import { useEffect, useState } from "react";
+export function BookmarkButton({ slug }: { slug: string }) { const [saved, setSaved] = useState(false); useEffect(() => { setSaved(JSON.parse(localStorage.getItem("songlight-bookmarks") || "[]").includes(slug)); }, [slug]); const toggle = () => { const list: string[] = JSON.parse(localStorage.getItem("songlight-bookmarks") || "[]"); const next = list.includes(slug) ? list.filter(x => x !== slug) : [...list, slug]; localStorage.setItem("songlight-bookmarks", JSON.stringify(next)); setSaved(!saved); }; return <button className={`icon-button ${saved ? "saved" : ""}`} onClick={toggle} aria-label={saved ? "Remove bookmark" : "Bookmark song"}>{saved ? "♥" : "♡"}</button>; }

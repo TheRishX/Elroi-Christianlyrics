@@ -1,0 +1,2 @@
+import Link from "next/link"; import { Song } from "@/lib/types";
+export function SongCard({ song }: { song: Song }) { return <Link className="song-card" href={`/${song.language}/${song.slug}`}><div className="song-card-top"><span className={`language-pill ${song.language}`}>{song.language}</span><span className="arrow">↗</span></div><h3>{song.title}</h3><p>{song.artist}</p>{song.excerpt && <span className="card-excerpt">{song.excerpt}</span>}</Link>; }

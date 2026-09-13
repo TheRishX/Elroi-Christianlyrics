@@ -1,0 +1,19 @@
+<?php
+/**
+ * Plugin Name: Christian Lyrics API
+ * Description: Song content model, normalized REST API, validation, ad settings, search and revalidation hooks for SongLight.
+ * Version: 0.1.0
+ */
+if (!defined('ABSPATH')) exit;
+final class Christian_Lyrics_API {
+  public function __construct() { add_action('init', [$this,'register_song']); add_action('rest_api_init', [$this,'routes']); add_action('save_post_song', [$this,'revalidate'], 20, 3); add_filter('wp_insert_post_data', [$this,'validate'], 10, 2); }
+  public function register_song() { register_post_type('song', ['label'=>'Songs','public'=>true,'show_in_rest'=>true,'supports'=>['title','editor','excerpt','thumbnail'],'rewrite'=>['slug'=>'songs']]); foreach(['artist','genre','worship_category','theme','language','occasion','scripture_reference'] as $tax) register_taxonomy($tax,'song',['label'=>ucwords(str_replace('_',' ',$tax)),'public'=>true,'show_in_rest'=>true,'hierarchical'=>in_array($tax,['genre','worship_category','theme','occasion'])]); }
+  public function routes() { register_rest_route('lyrics/v1','/songs/(?P<slug>[\w-]+)', ['methods'=>'GET','callback'=>[$this,'song'],'permission_callback'=>'__return_true']); register_rest_route('lyrics/v1','/search', ['methods'=>'GET','callback'=>[$this,'search'],'permission_callback'=>'__return_true']); register_rest_route('lyrics/v1','/settings/ads', ['methods'=>'GET','callback'=>[$this,'ads'],'permission_callback'=>'__return_true']); }
+  private function normalize($post) { return ['id'=>$post->ID,'slug'=>$post->post_name,'title'=>get_the_title($post),'language'=>get_post_meta($post->ID,'language',true) ?: 'english','artist'=>get_post_meta($post->ID,'artist',true) ?: '','lyrics'=>json_decode(get_post_meta($post->ID,'lyrics',true) ?: '[]',true),'seo'=>['title'=>get_post_meta($post->ID,'seo_title',true),'description'=>get_post_meta($post->ID,'seo_description',true)],'updatedAt'=>$post->post_modified_gmt]; }
+  public function song($request) { $posts=get_posts(['post_type'=>'song','name'=>sanitize_title($request['slug']),'post_status'=>'publish','numberposts'=>1]); return $posts ? rest_ensure_response($this->normalize($posts[0])) : new WP_Error('not_found','Song not found',['status'=>404]); }
+  public function search($request) { $q=mb_substr(sanitize_text_field($request->get_param('q') ?: ''),0,120); if(!$q) return rest_ensure_response(['items'=>[],'total'=>0]); $args=['post_type'=>'song','post_status'=>'publish','s'=> $q,'posts_per_page'=>min(50,max(1,(int)($request->get_param('per_page') ?: 20))),'paged'=>max(1,(int)($request->get_param('page') ?: 1))]; $query=new WP_Query($args); return rest_ensure_response(['items'=>array_map([$this,'normalize'],$query->posts),'total'=>(int)$query->found_posts]); }
+  public function ads() { return rest_ensure_response(get_option('christian_lyrics_ads',['global'=>false])); }
+  public function validate($data,$postarr) { if(($postarr['post_type']??'')==='song' && ($postarr['post_status']??'')==='publish' && empty($postarr['post_title'])) $data['post_status']='draft'; return $data; }
+  public function revalidate($post_id,$post,$update) { if(wp_is_post_revision($post_id)) return; $url=getenv('SONGLIGHT_REVALIDATE_URL'); $secret=getenv('SONGLIGHT_REVALIDATE_SECRET'); if(!$url||!$secret) return; wp_remote_post($url,['timeout'=>5,'headers'=>['Content-Type'=>'application/json','X-Webhook-Secret'=>$secret],'body'=>wp_json_encode(['slug'=>$post->post_name,'status'=>$post->post_status])]); }
+}
+new Christian_Lyrics_API();
