@@ -6,4 +6,5 @@ out/
 coverage/
 *.tsbuildinfo
 *.zip
+wordpress-plugin/wordpress-plugin/
 .DS_Store
