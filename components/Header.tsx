@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, Bookmark, BookOpen, House, Search } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
@@ -10,12 +11,42 @@ const items = [
 ];
 export function DesktopMenu() {
   const path = usePathname();
+  const menuRef = useRef<HTMLElement>(null);
+  const [stuck, setStuck] = useState(false);
+  useEffect(() => {
+    const menu = menuRef.current;
+    if (!menu) return;
+    let originalTop = menu.getBoundingClientRect().top + window.scrollY;
+    const update = () => {
+      if (window.innerWidth <= 700) return setStuck(false);
+      const height = menu.offsetHeight;
+      setStuck(
+        window.scrollY >= originalTop - window.innerHeight + height + 18,
+      );
+    };
+    const resize = () => {
+      setStuck(false);
+      originalTop = menu.getBoundingClientRect().top + window.scrollY;
+      update();
+    };
+    window.addEventListener("scroll", update, { passive: true });
+    window.addEventListener("resize", resize);
+    update();
+    return () => {
+      window.removeEventListener("scroll", update);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
       : path === href;
   return (
-    <nav className="section-nav" aria-label="Main navigation">
+    <nav
+      ref={menuRef}
+      className={`section-nav ${stuck ? "is-stuck" : ""}`}
+      aria-label="Main navigation"
+    >
       {items.map((i) => (
         <Link
           key={i.href}

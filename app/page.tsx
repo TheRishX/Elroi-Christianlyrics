@@ -11,7 +11,7 @@ export default async function Home() {
   const songs = await getSongs();
   return (
     <div className="page">
-      <section className="hero hero-search">
+      <section className="hero hero-search" id="search-hero">
         <div className="hero-copy hero-copy-search">
           <HeroFaithMark />
           <div className="elroi-wordmark" aria-label="Elroi Tunes">
