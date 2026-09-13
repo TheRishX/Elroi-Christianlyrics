@@ -719,7 +719,7 @@ svg {
 }
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 26px 40px;
+  padding: 26px 40px 118px;
   max-width: 1240px;
   margin: auto;
   display: flex;
@@ -1216,7 +1216,7 @@ svg {
     font-size: 11px;
   }
   .site-footer {
-    padding: 22px;
+    padding: 22px 22px 106px;
     font-size: 10px;
     gap: 15px;
     line-height: 1.8;
@@ -1604,27 +1604,38 @@ svg {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: clamp(28px, 6vw, 82px);
-  width: 100%;
-  max-width: none;
-  margin: 0 0 28px;
-  padding: 20px 24px 22px;
-  border-top: 1px solid #edf0e9;
-  border-bottom: 1px solid #edf0e9;
-  background: rgba(255, 255, 255, 0.94);
+  gap: clamp(8px, 2vw, 22px);
+  width: min(100%, 780px);
+  margin: 0 auto 34px;
+  padding: 8px;
+  border: 1px solid #e1e8da;
+  border-radius: 20px;
+  background: rgba(248, 251, 245, 0.92);
   backdrop-filter: blur(18px);
-  box-shadow: 0 -8px 24px rgba(45, 68, 39, 0.06);
+  box-shadow: 0 12px 34px rgba(45, 68, 39, 0.1), inset 0 1px #ffffff;
 }
 .section-nav a {
   display: flex;
   align-items: center;
+  justify-content: center;
   gap: 9px;
   color: #7b8275;
   font-size: 15px;
   font-weight: 600;
+  min-width: 132px;
+  padding: 12px 18px;
+  border-radius: 14px;
+  transition: color 0.2s, background 0.2s, transform 0.2s, box-shadow 0.2s;
+}
+.section-nav a:hover {
+  color: var(--olive-dark);
+  background: rgba(232, 240, 225, 0.7);
+  transform: translateY(-2px);
 }
 .section-nav a[aria-current="page"] {
   color: var(--olive-dark);
+  background: #ffffff;
+  box-shadow: 0 4px 12px rgba(45, 68, 39, 0.08), inset 0 0 0 1px #e4ebde;
 }
 .section-nav-icon {
   display: grid;
@@ -1636,15 +1647,17 @@ svg {
 }
 .section-nav.is-stuck {
   position: fixed;
-  left: 0;
-  right: 0;
+  left: 50%;
+  right: auto;
+  transform: translateX(-50%);
   bottom: 0;
-  width: 100%;
-  max-width: none;
-  margin: 0;
-  border-radius: 0;
-  background: rgba(255, 255, 255, 0.97);
-  box-shadow: 0 -10px 30px rgba(45, 68, 39, 0.12);
+  width: min(calc(100vw - 48px), 780px);
+  margin: 0 0 18px;
+  animation: nav-dock-in 0.25s ease-out both;
+}
+@keyframes nav-dock-in {
+  from { opacity: 0; transform: translate(-50%, 12px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
 }
 .mobile-language-heading {
   display: none;
