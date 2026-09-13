@@ -6,9 +6,10 @@ type Mode = "side" | "original" | "roman";
 type DisplaySection = { label: string; original: string; roman?: string };
 
 function cleanLegacy(value: string, roman = false) {
-  return value
+  const cleaned = value
     .replace(/\\r\\n|\\n|\\r/g, "\n")
     .replace(roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g, "\n");
+  return roman ? cleaned : cleaned.replace(/[?�]?n(?=[ \t]*(?:\n|$))/g, "");
 }
 
 function splitSections(value: string, fallback: string): DisplaySection[] {
