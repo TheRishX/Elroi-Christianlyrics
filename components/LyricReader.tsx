@@ -171,7 +171,7 @@ export function LyricReader({ song }: { song: Song }) {
               {hasRoman && (
                 <p
                   className="roman"
-                  hidden={mode !== "roman"}
+                  hidden={mode === "original"}
                   lang={song.language === "hindi" ? "hi-Latn" : "ne-Latn"}
                 >
                   {section.roman}
