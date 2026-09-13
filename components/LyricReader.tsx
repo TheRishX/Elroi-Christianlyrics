@@ -1,3 +1,148 @@
 "use client";
-import { useEffect, useState } from "react"; import { Song } from "@/lib/types"; import { BookmarkButton } from "./BookmarkButton";
-export function LyricReader({ song }: { song: Song }) { const dual = song.language !== "english"; const [mode, setMode] = useState<"side" | "original" | "roman">(dual ? "side" : "original"); const [size, setSize] = useState(1); useEffect(() => { const s = localStorage.getItem("songlight-font-size"); if (s) setSize(Number(s)); }, []); const changeSize = (n: number) => { const next = Math.min(1.25, Math.max(.85, size + n)); setSize(next); localStorage.setItem("songlight-font-size", String(next)); }; const copy = () => navigator.clipboard?.writeText(song.lyrics.map(l => `${l.label}\n${l.original}${l.roman ? `\n${l.roman}` : ""}`).join("\n\n")); const share = () => navigator.share ? navigator.share({ title: song.title, url: location.href }) : navigator.clipboard?.writeText(location.href); return <section className="reader"><div className="reader-toolbar"><div className="mode-toggle">{dual && <><button className={mode === "side" ? "active" : ""} onClick={() => setMode("side")}>Both</button><button className={mode === "original" ? "active" : ""} onClick={() => setMode("original")}>Original</button><button className={mode === "roman" ? "active" : ""} onClick={() => setMode("roman")}>Roman</button></>}</div><div className="reader-actions"><button onClick={() => changeSize(-.05)} aria-label="Decrease font size">A−</button><button onClick={() => changeSize(.05)} aria-label="Increase font size">A+</button><button onClick={copy}>Copy</button><button onClick={share}>Share</button><BookmarkButton slug={song.slug}/></div></div><div className={`lyrics mode-${mode}`} style={{ fontSize: `${size}em` }}>{song.lyrics.map((section, i) => <div className="lyric-section" key={i}><h3>{section.label}</h3><div className="lyric-columns">{(mode === "side" || mode === "original") && <p className="original">{section.original}</p>}{dual && (mode === "side" || mode === "roman") && <p className="roman">{section.roman}</p>}</div></div>)}</div></section>; }
+import { useEffect, useState } from "react";
+import { Song } from "@/lib/types";
+import { BookmarkButton } from "./BookmarkButton";
+type Mode = "side" | "original" | "roman";
+export function LyricReader({ song }: { song: Song }) {
+  const dual = song.language !== "english";
+  const [mode, setMode] = useState<Mode>(dual ? "side" : "original");
+  const [size, setSize] = useState(1);
+  const [notice, setNotice] = useState("");
+  useEffect(() => {
+    try {
+      const value = Number(localStorage.getItem("songlight-font-size") || 1);
+      if (Number.isFinite(value)) setSize(Math.min(1.5, Math.max(0.85, value)));
+      const saved = localStorage.getItem("songlight-reader-mode");
+      if (dual && ["side", "original", "roman"].includes(saved || ""))
+        setMode(saved as Mode);
+    } catch {}
+  }, [dual]);
+  useEffect(() => {
+    if (!notice) return;
+    const timeout = setTimeout(() => setNotice(""), 2500);
+    return () => clearTimeout(timeout);
+  }, [notice]);
+  function select(next: Mode) {
+    setMode(next);
+    try {
+      localStorage.setItem("songlight-reader-mode", next);
+    } catch {}
+  }
+  function resize(delta: number) {
+    const next =
+      Math.round(Math.min(1.5, Math.max(0.85, size + delta)) * 100) / 100;
+    setSize(next);
+    try {
+      localStorage.setItem("songlight-font-size", String(next));
+    } catch {}
+  }
+  async function copy() {
+    try {
+      await navigator.clipboard.writeText(
+        song.lyrics
+          .map((l) =>
+            [
+              l.label,
+              mode !== "roman" ? l.original : "",
+              dual && mode !== "original" ? l.roman : "",
+            ]
+              .filter(Boolean)
+              .join("\n"),
+          )
+          .join("\n\n"),
+      );
+      setNotice("Lyrics copied");
+    } catch {
+      setNotice("Copy unavailable. Select the lyrics to copy them.");
+    }
+  }
+  async function share() {
+    try {
+      if (navigator.share)
+        await navigator.share({ title: song.title, url: location.href });
+      else {
+        await navigator.clipboard.writeText(location.href);
+        setNotice("Song link copied");
+      }
+    } catch {}
+  }
+  return (
+    <section className="reader" aria-label="Lyric reader">
+      <div className="reader-toolbar">
+        {dual && (
+          <div className="mode-toggle" role="group" aria-label="Lyric display">
+            {(
+              [
+                { id: "side", label: "Dual" },
+                { id: "original", label: "Hindi" },
+                { id: "roman", label: "English" },
+              ] as const
+            ).map((m) => (
+              <button
+                key={m.id}
+                aria-pressed={mode === m.id}
+                className={mode === m.id ? "active" : ""}
+                onClick={() => select(m.id)}
+              >
+                {m.label}
+              </button>
+            ))}
+          </div>
+        )}
+        <div className="reader-actions">
+          <button
+            onClick={() => resize(-0.1)}
+            disabled={size <= 0.85}
+            aria-label="Decrease font size"
+          >
+            A−
+          </button>
+          <button
+            onClick={() => resize(0.1)}
+            disabled={size >= 1.5}
+            aria-label="Increase font size"
+          >
+            A+
+          </button>
+          <button onClick={copy}>Copy</button>
+          <button onClick={share}>Share</button>
+          <BookmarkButton slug={song.slug} />
+        </div>
+      </div>
+      <div className={`lyrics mode-${mode}`} style={{ fontSize: `${size}em` }}>
+        {song.lyrics.map((section, i) => (
+          <div className="lyric-section" key={i}>
+            <h3>{section.label}</h3>
+            <div className="lyric-columns">
+              <p
+                className="original"
+                hidden={mode === "roman"}
+                lang={
+                  song.language === "hindi"
+                    ? "hi"
+                    : song.language === "nepali"
+                      ? "ne"
+                      : "en"
+                }
+              >
+                {section.original}
+              </p>
+              {dual && (
+                <p
+                  className="roman"
+                  hidden={mode === "original"}
+                  lang={song.language === "hindi" ? "hi-Latn" : "ne-Latn"}
+                >
+                  {section.roman}
+                </p>
+              )}
+            </div>
+          </div>
+        ))}
+      </div>
+      <div className={notice ? "reader-notice" : "sr-only"} role="status">
+        {notice}
+      </div>
+    </section>
+  );
+}

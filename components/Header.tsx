@@ -1,2 +1,77 @@
+"use client";
 import Link from "next/link";
-export function Header() { return <header className="site-header"><Link className="brand" href="/"><span className="brand-mark">✦</span><span>Song<span className="brand-accent">Light</span></span></Link><nav><Link href="/hindi">Hindi</Link><Link href="/nepali">Nepali</Link><Link href="/english">English</Link><Link className="bookmark-link" href="/bookmarks">♡ <span className="desktop-only">Saved</span></Link></nav></header>; }
+import { usePathname, useRouter } from "next/navigation";
+import { ArrowLeft, Bookmark, BookOpen, House, Search } from "lucide-react";
+const items = [
+  { href: "/", label: "Home", icon: House },
+  { href: "/search", label: "Search", icon: Search },
+  { href: "/browse", label: "Browse", icon: BookOpen },
+  { href: "/bookmarks", label: "Saved", icon: Bookmark },
+];
+export function DesktopMenu() {
+  const path = usePathname();
+  const active = (href: string) =>
+    href === "/browse"
+      ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
+      : path === href;
+  return (
+    <nav className="section-nav" aria-label="Main navigation">
+      {items.map((i) => (
+        <Link
+          key={i.href}
+          href={i.href}
+          aria-current={active(i.href) ? "page" : undefined}
+        >
+          <span className="section-nav-icon">
+            <i.icon size={20} strokeWidth={1.8} />
+          </span>
+          {i.label}
+        </Link>
+      ))}
+    </nav>
+  );
+}
+export function Header() {
+  const path = usePathname();
+  const router = useRouter();
+  const active = (href: string) =>
+    href === "/browse"
+      ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
+      : path === href;
+  return (
+    <>
+      <a className="skip-link" href="#main">
+        Skip to content
+      </a>
+      {path !== "/" && (
+        <nav className="utility-nav" aria-label="Page navigation">
+          <button
+            type="button"
+            className="utility-back"
+            onClick={() =>
+              window.history.length > 1 ? router.back() : router.push("/")
+            }
+            aria-label="Go back"
+          >
+            <ArrowLeft size={18} strokeWidth={1.8} />
+            <span>Back</span>
+          </button>
+        </nav>
+      )}
+      <nav className="bottom-nav" aria-label="App navigation">
+        {items.map((i) => (
+          <Link
+            key={i.href}
+            href={i.href}
+            aria-current={active(i.href) ? "page" : undefined}
+          >
+            <span className="nav-icon">
+              <i.icon size={22} strokeWidth={1.8} />
+            </span>
+            <span>{i.label}</span>
+          </Link>
+        ))}
+      </nav>
+    </>
+  );
+}

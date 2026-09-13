@@ -1,16 +1,188 @@
 import { songs as mockSongs } from "./mock-data";
-import { Song, Language } from "./types";
+import { Language, SearchResult, Song, SongSuggestion } from "./types";
 const base = process.env.WORDPRESS_API_URL;
+function listFrom(data: unknown): Song[] {
+  if (Array.isArray(data)) return data as Song[];
+  if (
+    data &&
+    typeof data === "object" &&
+    Array.isArray((data as { items?: unknown }).items)
+  )
+    return (data as { items: Song[] }).items;
+  return [];
+}
 export async function getSongs(language?: Language): Promise<Song[]> {
-  if (!base) return language ? mockSongs.filter(s => s.language === language) : mockSongs;
-  try { const url = new URL(`${base}/songs`); if (language) url.searchParams.set("language", language); const res = await fetch(url, { next: { revalidate: 300, tags: ["songs"] } }); if (!res.ok) throw new Error("WordPress unavailable"); return await res.json(); } catch { return language ? mockSongs.filter(s => s.language === language) : mockSongs; }
+  if (!base)
+    return language
+      ? mockSongs.filter((s) => s.language === language)
+      : mockSongs;
+  try {
+    const url = new URL(`${base}/songs`);
+    if (language) url.searchParams.set("language", language);
+    const res = await fetch(url, {
+      next: { revalidate: 300, tags: ["songs"] },
+    });
+    if (!res.ok) throw new Error("WordPress unavailable");
+    return listFrom(await res.json());
+  } catch {
+    return language
+      ? mockSongs.filter((s) => s.language === language)
+      : mockSongs;
+  }
 }
 export async function getSong(slug: string): Promise<Song | undefined> {
-  if (!base) return mockSongs.find(s => s.slug === slug);
-  try { const res = await fetch(`${base}/songs/${encodeURIComponent(slug)}`, { next: { revalidate: 300, tags: [`song:${slug}`] } }); if (!res.ok) return undefined; return await res.json(); } catch { return mockSongs.find(s => s.slug === slug); }
+  if (!base) return mockSongs.find((s) => s.slug === slug);
+  try {
+    const res = await fetch(`${base}/songs/${encodeURIComponent(slug)}`, {
+      next: { revalidate: 300, tags: [`song:${slug}`] },
+    });
+    if (!res.ok) return undefined;
+    return await res.json();
+  } catch {
+    return mockSongs.find((s) => s.slug === slug);
+  }
 }
-export async function searchSongs(query: string, language?: Language): Promise<Song[]> {
-  if (base) { try { const url=new URL(`${base}/search`); url.searchParams.set("q",query); if(language) url.searchParams.set("language",language); const res=await fetch(url,{next:{revalidate:60,tags:["search"]}}); if(res.ok){const data=await res.json(); return data.items || data;} } catch {} }
-  const all = await getSongs(language); const q = query.toLowerCase().trim(); if (!q) return all;
-  return all.filter(s => [s.title, s.artist, s.excerpt, ...s.lyrics.flatMap(l => [l.original, l.roman || ""])].join(" ").toLowerCase().includes(q));
+function fold(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[’']/g, "")
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+function romanVariants(value: string) {
+  const folded = fold(value);
+  return [
+    folded,
+    folded.replace(/aa/g, "a"),
+    folded.replace(/sh/g, "s"),
+    folded.replace(/ee/g, "i"),
+    folded.replace(/oo/g, "u"),
+  ];
+}
+function snippet(text: string, q: string) {
+  const clean = text.replace(/\s+/g, " ").trim();
+  const index = fold(clean).indexOf(fold(q));
+  if (index < 0) return clean.slice(0, 110) + (clean.length > 110 ? "…" : "");
+  const start = Math.max(0, index - 35);
+  const end = Math.min(clean.length, index + Math.max(q.length, 35));
+  return (
+    (start ? "…" : "") +
+    clean.slice(start, end) +
+    (end < clean.length ? "…" : "")
+  );
+}
+function rank(song: Song, q: string): SearchResult | undefined {
+  const native = fold(q);
+  const roman = romanVariants(q);
+  const title = fold(song.title);
+  const rt = romanVariants(song.romanTitle || "");
+  const artist = fold(song.artist || "");
+  const alt = [
+    ...(song.alternateTitles || []),
+    ...(song.romanAlternateTitles || []),
+  ].flatMap(romanVariants);
+  const lyrics = song.lyrics.map((l) => l.original).join(" ");
+  const rlyrics = song.lyrics.map((l) => l.roman || "").join(" ");
+  let matchType: SearchResult["matchType"];
+  let score = 0;
+  let matchText = "";
+  if (title === native || title.includes(native)) {
+    matchType = "title";
+    score = 100;
+    matchText = song.title;
+  } else if (
+    rt.some((v) => v === native || v.includes(native)) ||
+    alt.some((v) => v === native || v.includes(native))
+  ) {
+    matchType = "roman_title";
+    score = 90;
+    matchText = song.romanTitle || song.title;
+  } else if (artist.includes(native)) {
+    matchType = "artist";
+    score = 70;
+    matchText = song.artist;
+  } else if (fold(lyrics).includes(native)) {
+    matchType = "lyrics";
+    score = 50;
+    matchText = lyrics;
+  } else if (roman.some((v) => fold(rlyrics).includes(v))) {
+    matchType = "roman_lyrics";
+    score = 40;
+    matchText = rlyrics;
+  } else return undefined;
+  return {
+    ...song,
+    matchType,
+    snippet:
+      matchType === "lyrics" || matchType === "roman_lyrics"
+        ? snippet(matchText, q)
+        : "",
+    _score: score,
+  } as SearchResult & { _score: number };
+}
+export async function suggestSongs(
+  query: string,
+  language?: Language,
+): Promise<SongSuggestion[]> {
+  if (base) {
+    try {
+      const url = new URL(`${base}/suggestions`);
+      url.searchParams.set("q", query);
+      if (language) url.searchParams.set("language", language);
+      const res = await fetch(url, { cache: "no-store" });
+      if (res.ok) {
+        const data = await res.json();
+        return listFrom(data) as unknown as SongSuggestion[];
+      }
+    } catch {}
+  }
+  return mockSongs
+    .map((s) => rank(s, query))
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        (b as SearchResult & { _score: number })._score -
+        (a as SearchResult & { _score: number })._score,
+    )
+    .slice(0, 6)
+    .map((s) => ({
+      id: s!.id,
+      slug: s!.slug,
+      title: s!.title,
+      romanTitle: s!.romanTitle,
+      artist: s!.artist,
+      language: s!.language,
+      matchType: s!.matchType || "title",
+      snippet: s!.snippet,
+    }));
+}
+export async function searchSongs(
+  query: string,
+  language?: Language,
+): Promise<SearchResult[]> {
+  if (base) {
+    try {
+      const url = new URL(`${base}/search`);
+      url.searchParams.set("q", query);
+      if (language) url.searchParams.set("language", language);
+      const res = await fetch(url, {
+        next: { revalidate: 60, tags: ["search"] },
+      });
+      if (res.ok) {
+        const data = await res.json();
+        return listFrom(data) as SearchResult[];
+      }
+    } catch {}
+  }
+  return mockSongs
+    .map((s) => rank(s, query))
+    .filter(Boolean)
+    .sort(
+      (a, b) =>
+        (b as SearchResult & { _score: number })._score -
+        (a as SearchResult & { _score: number })._score,
+    ) as SearchResult[];
 }
