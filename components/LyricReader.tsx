@@ -4,8 +4,8 @@ import { Song } from "@/lib/types";
 import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
 export function LyricReader({ song }: { song: Song }) {
-  const dual = song.language !== "english";
-  const [mode, setMode] = useState<Mode>(dual ? "side" : "original");
+  const hasRoman = song.language !== "english" && song.lyrics.some((section) => section.roman);
+  const [mode, setMode] = useState<Mode>("original");
   const [size, setSize] = useState(1);
   const [notice, setNotice] = useState("");
   useEffect(() => {
@@ -13,10 +13,10 @@ export function LyricReader({ song }: { song: Song }) {
       const value = Number(localStorage.getItem("songlight-font-size") || 1);
       if (Number.isFinite(value)) setSize(Math.min(1.5, Math.max(0.85, value)));
       const saved = localStorage.getItem("songlight-reader-mode");
-      if (dual && ["side", "original", "roman"].includes(saved || ""))
+      if (hasRoman && ["side", "original", "roman"].includes(saved || ""))
         setMode(saved as Mode);
     } catch {}
-  }, [dual]);
+  }, [hasRoman]);
   useEffect(() => {
     if (!notice) return;
     const timeout = setTimeout(() => setNotice(""), 2500);
@@ -44,7 +44,7 @@ export function LyricReader({ song }: { song: Song }) {
             [
               l.label,
               mode !== "roman" ? l.original : "",
-              dual && mode !== "original" ? l.roman : "",
+              hasRoman && mode !== "original" ? l.roman || "" : "",
             ]
               .filter(Boolean)
               .join("\n"),
@@ -69,12 +69,12 @@ export function LyricReader({ song }: { song: Song }) {
   return (
     <section className="reader" aria-label="Lyric reader">
       <div className="reader-toolbar">
-        {dual && (
+        {hasRoman && (
           <div className="mode-toggle" role="group" aria-label="Lyric display">
             {(
               [
                 { id: "side", label: "Dual" },
-                { id: "original", label: "Hindi" },
+                { id: "original", label: song.language === "hindi" ? "Hindi" : "Nepali" },
                 { id: "roman", label: "English" },
               ] as const
             ).map((m) => (
@@ -127,10 +127,10 @@ export function LyricReader({ song }: { song: Song }) {
               >
                 {section.original}
               </p>
-              {dual && (
+              {hasRoman && (
                 <p
                   className="roman"
-                  hidden={mode === "original"}
+                  hidden={mode !== "roman"}
                   lang={song.language === "hindi" ? "hi-Latn" : "ne-Latn"}
                 >
                   {section.roman}

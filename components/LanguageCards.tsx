@@ -8,13 +8,13 @@ export function LanguageCards() {
           id: "hindi",
           script: "हिन्दी",
           name: "Hindi",
-          caption: "Devanagari & Hinglish",
+          caption: "Hindi lyrics + Hinglish search",
         },
         {
           id: "nepali",
           script: "नेपाली",
           name: "Nepali",
-          caption: "Devanagari & Roman",
+          caption: "Nepali lyrics + Roman search",
         },
         {
           id: "english",

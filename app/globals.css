@@ -861,8 +861,8 @@ svg {
 }
 .lyric-columns {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 38px;
+  grid-template-columns: 1fr;
+  gap: 0;
 }
 .lyric-columns p {
   white-space: pre-line;
@@ -870,13 +870,13 @@ svg {
   margin: 0;
   font-size: 1.25em;
 }
+.mode-side .lyric-columns {
+  grid-template-columns: 1fr 1fr;
+  gap: 38px;
+}
 .roman {
   font-family: "DM Sans", sans-serif;
   color: #758169;
-}
-.mode-original .lyric-columns,
-.mode-roman .lyric-columns {
-  grid-template-columns: 1fr;
 }
 .mode-roman .roman {
   color: var(--ink);
