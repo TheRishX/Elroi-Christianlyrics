@@ -89,6 +89,16 @@ function possibleUploaded(title: string, songs: Song[]) {
     .slice(0, 5)
     .map((item) => item.song);
 }
+function songHint(song: Song) {
+  const text =
+    song.excerpt ||
+    song.lyrics?.find((section) => section.original)?.original ||
+    "Published lyric in your live library.";
+  return (
+    text.replace(/\s+/g, " ").trim().slice(0, 125) +
+    (text.length > 125 ? "…" : "")
+  );
+}
 async function api(path: string, init?: RequestInit) {
   const response = await fetch(path, {
     ...init,
@@ -110,6 +120,10 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
     [saving, setSaving] = useState(false),
     [finishingTaskId, setFinishingTaskId] = useState<number | null>(null),
     [finishSongId, setFinishSongId] = useState(""),
+    [pendingAdd, setPendingAdd] = useState<{
+      values: typeof emptyForm;
+      matches: Song[];
+    } | null>(null),
     [error, setError] = useState(""),
     [message, setMessage] = useState<{
       type: "warning" | "success";
@@ -229,6 +243,25 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
       key(`${song.title} ${song.artist}`).includes(key(query)),
     );
   const readyCount = tasks.filter((task) => task.status === "ready").length;
+  async function saveNewTask(values: typeof emptyForm) {
+    setSaving(true);
+    try {
+      const created = await api("/api/todo/tasks", {
+        method: "POST",
+        body: JSON.stringify(values),
+      });
+      setTasks((current) => [created, ...current]);
+      setForm(emptyForm);
+      setMessage({ type: "success", text: "Added to your upcoming songs." });
+    } catch (e) {
+      setMessage({
+        type: "warning",
+        text: e instanceof Error ? e.message : "Could not save task.",
+      });
+    } finally {
+      setSaving(false);
+    }
+  }
   async function addTask(event: FormEvent) {
     event.preventDefault();
     const title = form.title.trim();
@@ -243,29 +276,18 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
         type: "warning",
         text: `Already on your upcoming list: “${title}”.`,
       });
-    const similar = possibleUploaded(title, uploadedSongs)[0];
-    if (similar)
-      setMessage({
-        type: "warning",
-        text: `Possible existing lyric: “${similar.title}”. Review it before publishing a duplicate.`,
-      });
-    setSaving(true);
-    try {
-      const created = await api("/api/todo/tasks", {
-        method: "POST",
-        body: JSON.stringify(form),
-      });
-      setTasks((current) => [created, ...current]);
-      setForm(emptyForm);
-      setMessage({ type: "success", text: "Added to your upcoming songs." });
-    } catch (e) {
-      setMessage({
-        type: "warning",
-        text: e instanceof Error ? e.message : "Could not save task.",
-      });
-    } finally {
-      setSaving(false);
+    const matches = possibleUploaded(title, uploadedSongs);
+    if (matches.length) {
+      setPendingAdd({ values: { ...form, title }, matches });
+      return;
     }
+    await saveNewTask({ ...form, title });
+  }
+  async function continueAdding() {
+    if (!pendingAdd) return;
+    const values = pendingAdd.values;
+    setPendingAdd(null);
+    await saveNewTask(values);
   }
   async function importBulk() {
     const titles = bulk
@@ -276,6 +298,18 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
       duplicates: string[] = [],
       additions: Task[] = [],
       seen = new Set([...uploadedKeys, ...taskKeys]);
+    const similarBulk = titles.flatMap((title) =>
+      possibleUploaded(title, uploadedSongs).map(
+        (song) => `${title} → ${song.title}`,
+      ),
+    );
+    if (similarBulk.length) {
+      setMessage({
+        type: "warning",
+        text: `Potential matches found (${similarBulk.slice(0, 2).join("; ")}). Add these titles individually to review the matching songs before saving.`,
+      });
+      return;
+    }
     setSaving(true);
     try {
       for (const title of titles) {
@@ -503,6 +537,61 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
           <AlertTriangle size={17} />
           {error}
           <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      )}
+      {pendingAdd && (
+        <div className="match-modal-backdrop" role="presentation">
+          <section
+            className="match-modal"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="match-modal-title"
+          >
+            <span className="eyebrow">DUPLICATE CHECK</span>
+            <h2 id="match-modal-title">This title may already exist.</h2>
+            <p>
+              We found published lyrics that look similar to{" "}
+              <strong>“{pendingAdd.values.title}”</strong>. Open a result to
+              compare it before continuing.
+            </p>
+            <div className="match-list">
+              {pendingAdd.matches.map((song) => (
+                <a
+                  className="match-item"
+                  href={`/${song.language}/${song.slug}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  key={song.id}
+                >
+                  <span>
+                    <strong>{song.title}</strong>
+                    <small>
+                      {song.language} · {song.artist || "Artist not added"}
+                    </small>
+                    <em>{songHint(song)}</em>
+                  </span>
+                  <span className="match-open">Open ↗</span>
+                </a>
+              ))}
+            </div>
+            <div className="match-modal-actions">
+              <button
+                type="button"
+                className="manager-secondary"
+                onClick={() => setPendingAdd(null)}
+              >
+                Cancel and review
+              </button>
+              <button
+                type="button"
+                className="manager-primary"
+                onClick={continueAdding}
+                disabled={saving}
+              >
+                Different song — continue
+              </button>
+            </div>
+          </section>
         </div>
       )}
       {loading ? (
