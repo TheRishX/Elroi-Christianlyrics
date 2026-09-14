@@ -1,11 +1,11 @@
 "use client";
-
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import {
   AlertTriangle,
   CheckCircle2,
   ClipboardPaste,
+  History,
   ListTodo,
   Plus,
   Search,
@@ -14,24 +14,29 @@ import {
 } from "lucide-react";
 import { Song } from "@/lib/types";
 
-type TaskStatus = "planned" | "in-progress" | "ready";
+type TaskStatus = "planned" | "in-progress" | "ready" | "uploaded";
+type Language = "hindi" | "nepali" | "english";
+type Priority = "high" | "normal" | "low";
 type Task = {
-  id: string;
+  id: number;
   title: string;
-  language: "hindi" | "nepali" | "english";
+  language: Language;
   status: TaskStatus;
-  priority: "high" | "normal" | "low";
+  priority: Priority;
   notes: string;
   createdAt: string;
+  updatedAt?: string;
+  uploadedSongId?: number | null;
+  uploadedSongSlug?: string | null;
+  uploadedAt?: string | null;
 };
 const STORAGE_KEY = "elroi-song-manager-v1";
 const emptyForm = {
   title: "",
-  language: "hindi" as Task["language"],
-  priority: "normal" as Task["priority"],
+  language: "hindi" as Language,
+  priority: "normal" as Priority,
   notes: "",
 };
-
 function key(value: string) {
   return value
     .normalize("NFKD")
@@ -40,40 +45,123 @@ function key(value: string) {
     .replace(/[^\p{L}\p{N}]+/gu, " ")
     .trim();
 }
-function makeTask(title: string, values = emptyForm): Task {
-  return {
-    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
-    title: title.trim(),
-    language: values.language,
-    status: "planned",
-    priority: values.priority,
-    notes: values.notes.trim(),
-    createdAt: new Date().toISOString(),
-  };
+function findUploaded(title: string, songs: Song[]) {
+  const wanted = key(title);
+  return songs.find((song) =>
+    [
+      song.title,
+      song.romanTitle || "",
+      ...(song.alternateTitles || []),
+      ...(song.romanAlternateTitles || []),
+    ].some((value) => key(value) === wanted),
+  );
+}
+async function api(path: string, init?: RequestInit) {
+  const response = await fetch(path, {
+    ...init,
+    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.error || "Could not reach WordPress.");
+  return data;
 }
 
 export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [form, setForm] = useState(emptyForm);
-  const [bulk, setBulk] = useState("");
-  const [bulkLanguage, setBulkLanguage] = useState<Task["language"]>("hindi");
-  const [query, setQuery] = useState("");
-  const [tab, setTab] = useState<"plan" | "uploaded">("plan");
-  const [message, setMessage] = useState<{
-    type: "warning" | "success";
-    text: string;
-  } | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]),
+    [form, setForm] = useState(emptyForm),
+    [bulk, setBulk] = useState(""),
+    [bulkLanguage, setBulkLanguage] = useState<Language>("hindi"),
+    [query, setQuery] = useState(""),
+    [tab, setTab] = useState<"plan" | "uploaded" | "history">("plan"),
+    [loading, setLoading] = useState(true),
+    [saving, setSaving] = useState(false),
+    [error, setError] = useState(""),
+    [message, setMessage] = useState<{
+      type: "warning" | "success";
+      text: string;
+    } | null>(null);
   useEffect(() => {
-    try {
-      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
-      if (Array.isArray(stored)) setTasks(stored);
-    } catch {}
-  }, []);
+    let active = true;
+    (async () => {
+      try {
+        const data = await api("/api/todo/tasks");
+        if (!active) return;
+        let loaded: Task[] = data.items || [];
+        const raw = localStorage.getItem(STORAGE_KEY);
+        let imported = 0,
+          skipped = 0,
+          alreadyUploaded = 0;
+        if (raw && !localStorage.getItem(`${STORAGE_KEY}-migrated`)) {
+          const old = JSON.parse(raw);
+          if (Array.isArray(old)) {
+            for (const item of old) {
+              const title = String(item.title || "").trim();
+              if (!title) continue;
+              if (findUploaded(title, uploadedSongs)) {
+                alreadyUploaded++;
+                continue;
+              }
+              try {
+                const created = await api("/api/todo/tasks", {
+                  method: "POST",
+                  body: JSON.stringify({
+                    title,
+                    language: item.language || "hindi",
+                    priority: item.priority || "normal",
+                    notes: item.notes || "",
+                    status: item.status || "planned",
+                  }),
+                });
+                loaded = [created, ...loaded];
+                imported++;
+              } catch (e) {
+                if (String(e).toLowerCase().includes("already")) skipped++;
+                else throw e;
+              }
+            }
+            localStorage.setItem(`${STORAGE_KEY}-migrated`, "1");
+            if (imported || skipped || alreadyUploaded)
+              setMessage({
+                type: "success",
+                text: `Migration complete: ${imported} imported · ${skipped} duplicates skipped · ${alreadyUploaded} already uploaded.`,
+              });
+          }
+        }
+        setTasks(loaded);
+      } catch (e) {
+        if (active)
+          setError(e instanceof Error ? e.message : "Could not load tasks.");
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => {
+      active = false;
+    };
+  }, [uploadedSongs]);
   useEffect(() => {
-    try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
-    } catch {}
-  }, [tasks]);
+    if (loading) return;
+    tasks
+      .filter((task) => task.status !== "uploaded")
+      .forEach(async (task) => {
+        const match = findUploaded(task.title, uploadedSongs);
+        if (!match) return;
+        try {
+          const updated = await api(`/api/todo/tasks/${task.id}`, {
+            method: "PATCH",
+            body: JSON.stringify({
+              status: "uploaded",
+              uploadedSongId: match.id,
+              uploadedSongSlug: match.slug,
+              uploadedAt: match.updatedAt || new Date().toISOString(),
+            }),
+          });
+          setTasks((current) =>
+            current.map((item) => (item.id === task.id ? updated : item)),
+          );
+        } catch {}
+      });
+  }, [loading, tasks, uploadedSongs]);
   const uploadedKeys = useMemo(
     () =>
       new Set(
@@ -90,18 +178,23 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
       ),
     [uploadedSongs],
   );
-  const plannedKeys = useMemo(
+  const taskKeys = useMemo(
     () => new Set(tasks.map((task) => key(task.title))),
     [tasks],
   );
+  const visibleTasks = tasks.filter(
+      (task) =>
+        task.status !== "uploaded" && key(task.title).includes(key(query)),
+    ),
+    history = tasks.filter(
+      (task) =>
+        task.status === "uploaded" && key(task.title).includes(key(query)),
+    ),
+    visibleUploaded = uploadedSongs.filter((song) =>
+      key(`${song.title} ${song.artist}`).includes(key(query)),
+    );
   const readyCount = tasks.filter((task) => task.status === "ready").length;
-  const visibleTasks = tasks.filter((task) =>
-    key(task.title).includes(key(query)),
-  );
-  const visibleUploaded = uploadedSongs.filter((song) =>
-    key(`${song.title} ${song.artist}`).includes(key(query)),
-  );
-  function addTask(event: FormEvent) {
+  async function addTask(event: FormEvent) {
     event.preventDefault();
     const title = form.title.trim();
     if (!title) return;
@@ -110,50 +203,139 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
         type: "warning",
         text: `Already uploaded: “${title}”.`,
       });
-    if (plannedKeys.has(key(title)))
+    if (taskKeys.has(key(title)))
       return setMessage({
         type: "warning",
         text: `Already on your upcoming list: “${title}”.`,
       });
-    setTasks((current) => [makeTask(title, form), ...current]);
-    setForm(emptyForm);
-    setMessage({ type: "success", text: "Added to your upcoming songs." });
+    setSaving(true);
+    try {
+      const created = await api("/api/todo/tasks", {
+        method: "POST",
+        body: JSON.stringify(form),
+      });
+      setTasks((current) => [created, ...current]);
+      setForm(emptyForm);
+      setMessage({ type: "success", text: "Added to your upcoming songs." });
+    } catch (e) {
+      setMessage({
+        type: "warning",
+        text: e instanceof Error ? e.message : "Could not save task.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
-  function importBulk() {
+  async function importBulk() {
     const titles = bulk
-      .split(/\r?\n/)
-      .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
-      .filter(Boolean);
-    const uploaded: string[] = [];
-    const duplicates: string[] = [];
-    const additions: Task[] = [];
-    const seen = new Set([...uploadedKeys, ...plannedKeys]);
-    titles.forEach((title) => {
-      const titleKey = key(title);
-      if (uploadedKeys.has(titleKey)) uploaded.push(title);
-      else if (seen.has(titleKey)) duplicates.push(title);
-      else {
-        additions.push(
-          makeTask(title, { ...emptyForm, language: bulkLanguage }),
-        );
+        .split(/\r?\n/)
+        .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+        .filter(Boolean),
+      uploaded: string[] = [],
+      duplicates: string[] = [],
+      additions: Task[] = [],
+      seen = new Set([...uploadedKeys, ...taskKeys]);
+    setSaving(true);
+    try {
+      for (const title of titles) {
+        const titleKey = key(title);
+        if (uploadedKeys.has(titleKey)) {
+          uploaded.push(title);
+          continue;
+        }
+        if (seen.has(titleKey)) {
+          duplicates.push(title);
+          continue;
+        }
+        const created = await api("/api/todo/tasks", {
+          method: "POST",
+          body: JSON.stringify({
+            title,
+            language: bulkLanguage,
+            priority: "normal",
+            notes: "",
+            status: "planned",
+          }),
+        });
+        additions.push(created);
         seen.add(titleKey);
       }
-    });
-    if (additions.length) setTasks((current) => [...additions, ...current]);
-    setBulk("");
-    setMessage({
-      type: additions.length ? "success" : "warning",
-      text: `${additions.length} added${uploaded.length ? ` · ${uploaded.length} already uploaded` : ""}${duplicates.length ? ` · ${duplicates.length} already planned` : ""}.`,
-    });
+      setTasks((current) => [...additions, ...current]);
+      setBulk("");
+      setMessage({
+        type: additions.length ? "success" : "warning",
+        text: `${additions.length} added${uploaded.length ? ` · ${uploaded.length} already uploaded` : ""}${duplicates.length ? ` · ${duplicates.length} already planned` : ""}.`,
+      });
+    } catch (e) {
+      setMessage({
+        type: "warning",
+        text: e instanceof Error ? e.message : "Bulk import failed.",
+      });
+    } finally {
+      setSaving(false);
+    }
   }
-  function updateTask(id: string, patch: Partial<Task>) {
-    setTasks((current) =>
-      current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
-    );
+  async function updateTask(id: number, patch: Partial<Task>) {
+    try {
+      const updated = await api(`/api/todo/tasks/${id}`, {
+        method: "PATCH",
+        body: JSON.stringify(patch),
+      });
+      setTasks((current) =>
+        current.map((task) => (task.id === id ? updated : task)),
+      );
+    } catch (e) {
+      setMessage({
+        type: "warning",
+        text: e instanceof Error ? e.message : "Could not update task.",
+      });
+    }
   }
-  function removeTask(id: string) {
-    setTasks((current) => current.filter((task) => task.id !== id));
+  async function removeTask(id: number) {
+    try {
+      await api(`/api/todo/tasks/${id}`, { method: "DELETE" });
+      setTasks((current) => current.filter((task) => task.id !== id));
+    } catch (e) {
+      setMessage({
+        type: "warning",
+        text: e instanceof Error ? e.message : "Could not delete task.",
+      });
+    }
   }
+  const languages = [
+      ["hindi", "Hindi"],
+      ["nepali", "Nepali"],
+      ["english", "English"],
+    ] as const,
+    priorities = [
+      ["high", "High"],
+      ["normal", "Normal"],
+      ["low", "Low"],
+    ] as const,
+    statuses = [
+      ["planned", "Planned"],
+      ["in-progress", "In progress"],
+      ["ready", "Ready"],
+    ] as const;
+  const choices = (
+    selected: string,
+    values: readonly (readonly [string, string])[],
+    onChange: (value: any) => void,
+    className = "choice-buttons",
+  ) => (
+    <div className={className} role="group">
+      {values.map(([value, label]) => (
+        <button
+          type="button"
+          key={value}
+          className={selected === value ? "active" : ""}
+          onClick={() => onChange(value)}
+        >
+          {label}
+        </button>
+      ))}
+    </div>
+  );
   return (
     <div className="page song-manager">
       <section className="manager-hero">
@@ -169,7 +351,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
           <ListTodo size={42} strokeWidth={1.4} />
         </div>
       </section>
-      <section className="manager-stats" aria-label="Song manager summary">
+      <section className="manager-stats">
         <div>
           <span>Uploaded</span>
           <strong>{uploadedSongs.length}</strong>
@@ -178,7 +360,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
         <div>
           <span>Upcoming</span>
           <strong>
-            {tasks.filter((task) => task.status !== "ready").length}
+            {tasks.filter((task) => task.status !== "uploaded").length}
           </strong>
           <small>Titles in your pipeline</small>
         </div>
@@ -202,12 +384,18 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
           >
             <CheckCircle2 size={16} /> Uploaded
           </button>
+          <button
+            className={tab === "history" ? "active" : ""}
+            onClick={() => setTab("history")}
+          >
+            <History size={16} /> History
+          </button>
         </div>
         <label className="manager-search">
           <Search size={17} />
           <input
             value={query}
-            onChange={(event) => setQuery(event.target.value)}
+            onChange={(e) => setQuery(e.target.value)}
             placeholder="Find a song"
           />
         </label>
@@ -225,7 +413,20 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
           </button>
         </div>
       )}
-      {tab === "plan" ? (
+      {error && (
+        <div className="manager-message warning">
+          <AlertTriangle size={17} />
+          {error}
+          <button onClick={() => window.location.reload()}>Retry</button>
+        </div>
+      )}
+      {loading ? (
+        <div className="manager-empty">
+          <ListTodo size={25} />
+          <h3>Loading your WordPress pipeline…</h3>
+          <p>Syncing shared song tasks.</p>
+        </div>
+      ) : tab === "plan" ? (
         <>
           <section className="manager-add-grid">
             <form className="manager-card add-song-card" onSubmit={addTask}>
@@ -240,69 +441,32 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
               <div className="manager-form-row">
                 <input
                   value={form.title}
-                  onChange={(event) =>
-                    setForm({ ...form, title: event.target.value })
-                  }
+                  onChange={(e) => setForm({ ...form, title: e.target.value })}
                   placeholder="Song title"
                   aria-label="Song title"
                 />
-                <div
-                  className="choice-buttons"
-                  role="group"
-                  aria-label="Language"
-                >
-                  {(
-                    [
-                      ["hindi", "Hindi"],
-                      ["nepali", "Nepali"],
-                      ["english", "English"],
-                    ] as const
-                  ).map(([value, label]) => (
-                    <button
-                      type="button"
-                      key={value}
-                      className={form.language === value ? "active" : ""}
-                      onClick={() => setForm({ ...form, language: value })}
-                    >
-                      {label}
-                    </button>
-                  ))}
-                </div>
+                {choices(form.language, languages, (value) =>
+                  setForm({ ...form, language: value }),
+                )}
               </div>
-              <div
-                className="choice-buttons priority-buttons"
-                role="group"
-                aria-label="Priority"
-              >
-                {(
-                  [
-                    ["high", "High"],
-                    ["normal", "Normal"],
-                    ["low", "Low"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    className={
-                      form.priority === value ? `active ${value}` : value
-                    }
-                    onClick={() => setForm({ ...form, priority: value })}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              {choices(
+                form.priority,
+                priorities,
+                (value) => setForm({ ...form, priority: value }),
+                "choice-buttons priority-buttons",
+              )}
               <textarea
                 value={form.notes}
-                onChange={(event) =>
-                  setForm({ ...form, notes: event.target.value })
-                }
+                onChange={(e) => setForm({ ...form, notes: e.target.value })}
                 placeholder="Optional note: find Roman lyrics, confirm artist…"
                 aria-label="Note"
                 rows={2}
               />
-              <button className="manager-primary" type="submit">
+              <button
+                className="manager-primary"
+                type="submit"
+                disabled={saving}
+              >
                 Add to upcoming <Plus size={17} />
               </button>
             </form>
@@ -311,35 +475,16 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                 <ClipboardPaste size={16} /> Paste a batch
               </div>
               <h2>Build your pipeline quickly.</h2>
-              <p>
-                One title per line. Bullets and numbering are cleaned
-                automatically.
-              </p>
-              <div
-                className="bulk-language"
-                role="group"
-                aria-label="Language for pasted songs"
-              >
-                {(
-                  [
-                    ["hindi", "Hindi"],
-                    ["nepali", "Nepali"],
-                    ["english", "English"],
-                  ] as const
-                ).map(([value, label]) => (
-                  <button
-                    type="button"
-                    key={value}
-                    className={bulkLanguage === value ? "active" : ""}
-                    onClick={() => setBulkLanguage(value)}
-                  >
-                    {label}
-                  </button>
-                ))}
-              </div>
+              <p>Choose a language, then add one title per line.</p>
+              {choices(
+                bulkLanguage,
+                languages,
+                setBulkLanguage,
+                "bulk-language",
+              )}
               <textarea
                 value={bulk}
-                onChange={(event) => setBulk(event.target.value)}
+                onChange={(e) => setBulk(e.target.value)}
                 placeholder={"Yeshu Tera Naam\nPrabhu Ko Mahima\nAmazing Grace"}
                 rows={6}
                 aria-label="Upcoming song titles"
@@ -347,7 +492,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
               <button
                 className="manager-secondary"
                 onClick={importBulk}
-                disabled={!bulk.trim()}
+                disabled={!bulk.trim() || saving}
               >
                 Add list to upcoming <ClipboardPaste size={16} />
               </button>
@@ -361,9 +506,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                   Upcoming songs <span>{visibleTasks.length}</span>
                 </h2>
               </div>
-              <span className="manager-hint">
-                Your list is saved in this browser
-              </span>
+              <span className="manager-hint">Saved securely in WordPress</span>
             </div>
             {visibleTasks.length ? (
               <div className="task-list">
@@ -373,10 +516,16 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                     <div className="task-main">
                       <input
                         className="task-title-input"
-                        value={task.title}
-                        onChange={(event) =>
-                          updateTask(task.id, { title: event.target.value })
-                        }
+                        defaultValue={task.title}
+                        onBlur={(e) => {
+                          if (
+                            e.target.value.trim() &&
+                            e.target.value.trim() !== task.title
+                          )
+                            updateTask(task.id, {
+                              title: e.target.value.trim(),
+                            });
+                        }}
                         aria-label={`Edit ${task.title}`}
                       />
                       <div className="task-meta">
@@ -386,28 +535,12 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                         {task.notes && <span>{task.notes}</span>}
                       </div>
                     </div>
-                    <div
-                      className="task-status-buttons"
-                      role="group"
-                      aria-label={`Status for ${task.title}`}
-                    >
-                      {(
-                        [
-                          ["planned", "Planned"],
-                          ["in-progress", "In progress"],
-                          ["ready", "Ready"],
-                        ] as const
-                      ).map(([value, label]) => (
-                        <button
-                          type="button"
-                          key={value}
-                          className={task.status === value ? "active" : ""}
-                          onClick={() => updateTask(task.id, { status: value })}
-                        >
-                          {label}
-                        </button>
-                      ))}
-                    </div>
+                    {choices(
+                      task.status,
+                      statuses,
+                      (value) => updateTask(task.id, { status: value }),
+                      "task-status-buttons",
+                    )}
                     <button
                       className="task-delete"
                       onClick={() => removeTask(task.id)}
@@ -429,7 +562,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
             )}
           </section>
         </>
-      ) : (
+      ) : tab === "uploaded" ? (
         <section className="manager-list-section">
           <div className="manager-section-head">
             <div>
@@ -470,6 +603,48 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
               <Search size={25} />
               <h3>No matching songs.</h3>
               <p>Try another title or artist.</p>
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="manager-list-section">
+          <div className="manager-section-head">
+            <div>
+              <span className="eyebrow">UPLOAD HISTORY</span>
+              <h2>
+                Completed tasks <span>{history.length}</span>
+              </h2>
+            </div>
+            <span className="manager-hint">
+              Tasks remain available for traceability
+            </span>
+          </div>
+          {history.length ? (
+            <div className="uploaded-list">
+              {history.map((task) => (
+                <div className="uploaded-row" key={task.id}>
+                  <div className="uploaded-icon">
+                    <CheckCircle2 size={17} />
+                  </div>
+                  <div>
+                    <strong>{task.title}</strong>
+                    <span>{task.language} · uploaded</span>
+                  </div>
+                  {task.uploadedSongSlug ? (
+                    <Link href={`/${task.language}/${task.uploadedSongSlug}`}>
+                      View lyrics
+                    </Link>
+                  ) : (
+                    <span>Matched</span>
+                  )}
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="manager-empty">
+              <History size={25} />
+              <h3>No completed tasks yet.</h3>
+              <p>Matched songs will stay here as upload history.</p>
             </div>
           )}
         </section>
