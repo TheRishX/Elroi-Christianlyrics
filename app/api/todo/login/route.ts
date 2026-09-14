@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import {
   createTodoSession,
+  legacyTodoCookieName,
   todoCookieName,
   verifyTodoPasscode,
 } from "@/lib/todo-auth";
@@ -19,7 +20,7 @@ export async function POST(request: Request) {
     maxAge: 60 * 60 * 8,
   });
   // Remove the old path-scoped cookie created by earlier releases.
-  response.cookies.set(todoCookieName, "", {
+  response.cookies.set(legacyTodoCookieName, "", {
     httpOnly: true,
     secure: process.env.NODE_ENV === "production",
     sameSite: "lax",

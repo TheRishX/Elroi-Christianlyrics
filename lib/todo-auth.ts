@@ -1,6 +1,7 @@
 import { createHmac, timingSafeEqual } from "crypto";
 
-export const todoCookieName = "elroi_todo_access";
+export const todoCookieName = "elroi_todo_access_v2";
+export const legacyTodoCookieName = "elroi_todo_access";
 const secret = process.env.SESSION_SECRET || "development-only-change-me";
 const ttl = 1000 * 60 * 60 * 8;
 
@@ -27,5 +28,10 @@ export function validTodoSession(value?: string) {
   const payload = Buffer.from(encoded, "base64url").toString();
   const expected = signature(payload);
   const [scope, expiry] = payload.split(".");
-  return scope === "todo" && Number(expiry) > Date.now() && supplied.length === expected.length && timingSafeEqual(Buffer.from(supplied), Buffer.from(expected));
+  return (
+    scope === "todo" &&
+    Number(expiry) > Date.now() &&
+    supplied.length === expected.length &&
+    timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))
+  );
 }
