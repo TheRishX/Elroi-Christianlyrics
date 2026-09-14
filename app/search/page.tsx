@@ -1,4 +1,4 @@
-import { searchSongs } from "@/lib/api";
+import { getSongs, searchSongs } from "@/lib/api";
 import { SearchBox } from "@/components/SearchBox";
 import { SongCard } from "@/components/SongCard";
 import { AdSlot } from "@/components/AdSlot";
@@ -9,7 +9,7 @@ export default async function SearchPage({
 }) {
   const { q: query } = await searchParams;
   const q = query || "";
-  const results = await searchSongs(q);
+  const results = q ? await searchSongs(q) : await getSongs();
   return (
     <div className="page results">
       <span className="eyebrow">Search the collection</span>
