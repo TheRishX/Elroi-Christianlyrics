@@ -2,33 +2,478 @@
 
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { AlertTriangle, CheckCircle2, ClipboardPaste, ListTodo, Plus, Search, Trash2, Upload } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle2,
+  ClipboardPaste,
+  ListTodo,
+  Plus,
+  Search,
+  Trash2,
+  Upload,
+} from "lucide-react";
 import { Song } from "@/lib/types";
 
 type TaskStatus = "planned" | "in-progress" | "ready";
-type Task = { id: string; title: string; language: "hindi" | "nepali" | "english"; status: TaskStatus; priority: "high" | "normal" | "low"; notes: string; createdAt: string };
+type Task = {
+  id: string;
+  title: string;
+  language: "hindi" | "nepali" | "english";
+  status: TaskStatus;
+  priority: "high" | "normal" | "low";
+  notes: string;
+  createdAt: string;
+};
 const STORAGE_KEY = "elroi-song-manager-v1";
-const emptyForm = { title: "", language: "hindi" as Task["language"], priority: "normal" as Task["priority"], notes: "" };
+const emptyForm = {
+  title: "",
+  language: "hindi" as Task["language"],
+  priority: "normal" as Task["priority"],
+  notes: "",
+};
 
-function key(value: string) { return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim(); }
-function makeTask(title: string, values = emptyForm): Task { return { id: `${Date.now()}-${Math.random().toString(36).slice(2)}`, title: title.trim(), language: values.language, status: "planned", priority: values.priority, notes: values.notes.trim(), createdAt: new Date().toISOString() }; }
+function key(value: string) {
+  return value
+    .normalize("NFKD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/[^\p{L}\p{N}]+/gu, " ")
+    .trim();
+}
+function makeTask(title: string, values = emptyForm): Task {
+  return {
+    id: `${Date.now()}-${Math.random().toString(36).slice(2)}`,
+    title: title.trim(),
+    language: values.language,
+    status: "planned",
+    priority: values.priority,
+    notes: values.notes.trim(),
+    createdAt: new Date().toISOString(),
+  };
+}
 
 export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
-  const [tasks, setTasks] = useState<Task[]>([]); const [form, setForm] = useState(emptyForm); const [bulk, setBulk] = useState(""); const [query, setQuery] = useState(""); const [tab, setTab] = useState<"plan" | "uploaded">("plan"); const [message, setMessage] = useState<{ type: "warning" | "success"; text: string } | null>(null);
-  useEffect(() => { try { const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]"); if (Array.isArray(stored)) setTasks(stored); } catch {} }, []);
-  useEffect(() => { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch {} }, [tasks]);
-  const uploadedKeys = useMemo(() => new Set(uploadedSongs.flatMap((song) => [song.title, song.romanTitle || "", ...(song.alternateTitles || []), ...(song.romanAlternateTitles || [])].map(key).filter(Boolean))), [uploadedSongs]);
-  const plannedKeys = useMemo(() => new Set(tasks.map((task) => key(task.title))), [tasks]);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [form, setForm] = useState(emptyForm);
+  const [bulk, setBulk] = useState("");
+  const [bulkLanguage, setBulkLanguage] = useState<Task["language"]>("hindi");
+  const [query, setQuery] = useState("");
+  const [tab, setTab] = useState<"plan" | "uploaded">("plan");
+  const [message, setMessage] = useState<{
+    type: "warning" | "success";
+    text: string;
+  } | null>(null);
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || "[]");
+      if (Array.isArray(stored)) setTasks(stored);
+    } catch {}
+  }, []);
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    } catch {}
+  }, [tasks]);
+  const uploadedKeys = useMemo(
+    () =>
+      new Set(
+        uploadedSongs.flatMap((song) =>
+          [
+            song.title,
+            song.romanTitle || "",
+            ...(song.alternateTitles || []),
+            ...(song.romanAlternateTitles || []),
+          ]
+            .map(key)
+            .filter(Boolean),
+        ),
+      ),
+    [uploadedSongs],
+  );
+  const plannedKeys = useMemo(
+    () => new Set(tasks.map((task) => key(task.title))),
+    [tasks],
+  );
   const readyCount = tasks.filter((task) => task.status === "ready").length;
-  const visibleTasks = tasks.filter((task) => key(task.title).includes(key(query))); const visibleUploaded = uploadedSongs.filter((song) => key(`${song.title} ${song.artist}`).includes(key(query)));
-  function addTask(event: FormEvent) { event.preventDefault(); const title = form.title.trim(); if (!title) return; if (uploadedKeys.has(key(title))) return setMessage({ type: "warning", text: `Already uploaded: “${title}”.` }); if (plannedKeys.has(key(title))) return setMessage({ type: "warning", text: `Already on your upcoming list: “${title}”.` }); setTasks((current) => [makeTask(title, form), ...current]); setForm(emptyForm); setMessage({ type: "success", text: "Added to your upcoming songs." }); }
-  function importBulk() { const titles = bulk.split(/\r?\n/).map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim()).filter(Boolean); const uploaded: string[] = []; const duplicates: string[] = []; const additions: Task[] = []; const seen = new Set([...uploadedKeys, ...plannedKeys]); titles.forEach((title) => { const titleKey = key(title); if (uploadedKeys.has(titleKey)) uploaded.push(title); else if (seen.has(titleKey)) duplicates.push(title); else { additions.push(makeTask(title)); seen.add(titleKey); } }); if (additions.length) setTasks((current) => [...additions, ...current]); setBulk(""); setMessage({ type: additions.length ? "success" : "warning", text: `${additions.length} added${uploaded.length ? ` · ${uploaded.length} already uploaded` : ""}${duplicates.length ? ` · ${duplicates.length} already planned` : ""}.` }); }
-  function updateTask(id: string, patch: Partial<Task>) { setTasks((current) => current.map((task) => task.id === id ? { ...task, ...patch } : task)); } function removeTask(id: string) { setTasks((current) => current.filter((task) => task.id !== id)); }
-  return <div className="page song-manager">
-    <section className="manager-hero"><div><span className="eyebrow">YOUR LYRICS CONTROL ROOM</span><h1>Keep every song moving.</h1><p>Track what is live, what is next, and what still needs your attention.</p></div><div className="manager-hero-icon"><ListTodo size={42} strokeWidth={1.4} /></div></section>
-    <section className="manager-stats" aria-label="Song manager summary"><div><span>Uploaded</span><strong>{uploadedSongs.length}</strong><small>Synced from your library</small></div><div><span>Upcoming</span><strong>{tasks.filter((task) => task.status !== "ready").length}</strong><small>Titles in your pipeline</small></div><div><span>Ready to publish</span><strong>{readyCount}</strong><small>Prepared for WordPress</small></div></section>
-    <div className="manager-toolbar"><div className="manager-tabs"><button className={tab === "plan" ? "active" : ""} onClick={() => setTab("plan")}><ListTodo size={16} /> Upcoming</button><button className={tab === "uploaded" ? "active" : ""} onClick={() => setTab("uploaded")}><CheckCircle2 size={16} /> Uploaded</button></div><label className="manager-search"><Search size={17} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Find a song" /></label></div>
-    {message && <div className={`manager-message ${message.type}`} role="status">{message.type === "warning" ? <AlertTriangle size={17} /> : <CheckCircle2 size={17} />}{message.text}<button onClick={() => setMessage(null)} aria-label="Dismiss message">×</button></div>}
-    {tab === "plan" ? <><section className="manager-add-grid"><form className="manager-card add-song-card" onSubmit={addTask}><div className="card-kicker"><Plus size={16} /> Add one song</div><h2>Plan your next upload.</h2><p>We will warn you if this title already exists in your live library.</p><div className="manager-form-row"><input value={form.title} onChange={(event) => setForm({ ...form, title: event.target.value })} placeholder="Song title" aria-label="Song title" /><select value={form.language} onChange={(event) => setForm({ ...form, language: event.target.value as Task["language"] })} aria-label="Language"><option value="hindi">Hindi</option><option value="nepali">Nepali</option><option value="english">English</option></select></div><select value={form.priority} onChange={(event) => setForm({ ...form, priority: event.target.value as Task["priority"] })} aria-label="Priority"><option value="high">High priority</option><option value="normal">Normal priority</option><option value="low">Low priority</option></select><textarea value={form.notes} onChange={(event) => setForm({ ...form, notes: event.target.value })} placeholder="Optional note: find Roman lyrics, confirm artist…" aria-label="Note" rows={2} /><button className="manager-primary" type="submit">Add to upcoming <Plus size={17} /></button></form><div className="manager-card bulk-card"><div className="card-kicker"><ClipboardPaste size={16} /> Paste a batch</div><h2>Build your pipeline quickly.</h2><p>One title per line. Bullets and numbering are cleaned automatically.</p><textarea value={bulk} onChange={(event) => setBulk(event.target.value)} placeholder={'Yeshu Tera Naam\nPrabhu Ko Mahima\nAmazing Grace'} rows={6} aria-label="Upcoming song titles" /><button className="manager-secondary" onClick={importBulk} disabled={!bulk.trim()}>Add list to upcoming <ClipboardPaste size={16} /></button></div></section><section className="manager-list-section"><div className="manager-section-head"><div><span className="eyebrow">UPLOAD PIPELINE</span><h2>Upcoming songs <span>{visibleTasks.length}</span></h2></div><span className="manager-hint">Your list is saved in this browser</span></div>{visibleTasks.length ? <div className="task-list">{visibleTasks.map((task) => <article className="task-row" key={task.id}><div className={`task-priority ${task.priority}`} /><div className="task-main"><input className="task-title-input" value={task.title} onChange={(event) => updateTask(task.id, { title: event.target.value })} aria-label={`Edit ${task.title}`} /><div className="task-meta"><span className={`task-language ${task.language}`}>{task.language}</span>{task.notes && <span>{task.notes}</span>}</div></div><select className={`task-status ${task.status}`} value={task.status} onChange={(event) => updateTask(task.id, { status: event.target.value as TaskStatus })} aria-label={`Status for ${task.title}`}><option value="planned">Planned</option><option value="in-progress">In progress</option><option value="ready">Ready to publish</option></select><button className="task-delete" onClick={() => removeTask(task.id)} aria-label={`Remove ${task.title}`}><Trash2 size={16} /></button></article>)}</div> : <div className="manager-empty"><ListTodo size={25} /><h3>Your upload pipeline is clear.</h3><p>Add a title above or paste your next batch to get started.</p></div>}</section></> : <section className="manager-list-section"><div className="manager-section-head"><div><span className="eyebrow">LIVE LIBRARY</span><h2>Uploaded songs <span>{visibleUploaded.length}</span></h2></div><span className="manager-hint">Automatically synced from WordPress</span></div>{visibleUploaded.length ? <div className="uploaded-list">{visibleUploaded.map((song) => <Link href={`/${song.language}/${song.slug}`} className="uploaded-row" key={song.id}><div className="uploaded-icon"><Upload size={17} /></div><div><strong>{song.title}</strong><span>{song.artist || "Artist not added"}</span></div><time>{song.updatedAt ? new Date(song.updatedAt).toLocaleDateString() : "Published"}</time></Link>)}</div> : <div className="manager-empty"><Search size={25} /><h3>No matching songs.</h3><p>Try another title or artist.</p></div>}</section>}
-  </div>;
+  const visibleTasks = tasks.filter((task) =>
+    key(task.title).includes(key(query)),
+  );
+  const visibleUploaded = uploadedSongs.filter((song) =>
+    key(`${song.title} ${song.artist}`).includes(key(query)),
+  );
+  function addTask(event: FormEvent) {
+    event.preventDefault();
+    const title = form.title.trim();
+    if (!title) return;
+    if (uploadedKeys.has(key(title)))
+      return setMessage({
+        type: "warning",
+        text: `Already uploaded: “${title}”.`,
+      });
+    if (plannedKeys.has(key(title)))
+      return setMessage({
+        type: "warning",
+        text: `Already on your upcoming list: “${title}”.`,
+      });
+    setTasks((current) => [makeTask(title, form), ...current]);
+    setForm(emptyForm);
+    setMessage({ type: "success", text: "Added to your upcoming songs." });
+  }
+  function importBulk() {
+    const titles = bulk
+      .split(/\r?\n/)
+      .map((line) => line.replace(/^\s*(?:[-*•]|\d+[.)])\s*/, "").trim())
+      .filter(Boolean);
+    const uploaded: string[] = [];
+    const duplicates: string[] = [];
+    const additions: Task[] = [];
+    const seen = new Set([...uploadedKeys, ...plannedKeys]);
+    titles.forEach((title) => {
+      const titleKey = key(title);
+      if (uploadedKeys.has(titleKey)) uploaded.push(title);
+      else if (seen.has(titleKey)) duplicates.push(title);
+      else {
+        additions.push(
+          makeTask(title, { ...emptyForm, language: bulkLanguage }),
+        );
+        seen.add(titleKey);
+      }
+    });
+    if (additions.length) setTasks((current) => [...additions, ...current]);
+    setBulk("");
+    setMessage({
+      type: additions.length ? "success" : "warning",
+      text: `${additions.length} added${uploaded.length ? ` · ${uploaded.length} already uploaded` : ""}${duplicates.length ? ` · ${duplicates.length} already planned` : ""}.`,
+    });
+  }
+  function updateTask(id: string, patch: Partial<Task>) {
+    setTasks((current) =>
+      current.map((task) => (task.id === id ? { ...task, ...patch } : task)),
+    );
+  }
+  function removeTask(id: string) {
+    setTasks((current) => current.filter((task) => task.id !== id));
+  }
+  return (
+    <div className="page song-manager">
+      <section className="manager-hero">
+        <div>
+          <span className="eyebrow">YOUR LYRICS CONTROL ROOM</span>
+          <h1>Keep every song moving.</h1>
+          <p>
+            Track what is live, what is next, and what still needs your
+            attention.
+          </p>
+        </div>
+        <div className="manager-hero-icon">
+          <ListTodo size={42} strokeWidth={1.4} />
+        </div>
+      </section>
+      <section className="manager-stats" aria-label="Song manager summary">
+        <div>
+          <span>Uploaded</span>
+          <strong>{uploadedSongs.length}</strong>
+          <small>Synced from your library</small>
+        </div>
+        <div>
+          <span>Upcoming</span>
+          <strong>
+            {tasks.filter((task) => task.status !== "ready").length}
+          </strong>
+          <small>Titles in your pipeline</small>
+        </div>
+        <div>
+          <span>Ready to publish</span>
+          <strong>{readyCount}</strong>
+          <small>Prepared for WordPress</small>
+        </div>
+      </section>
+      <div className="manager-toolbar">
+        <div className="manager-tabs">
+          <button
+            className={tab === "plan" ? "active" : ""}
+            onClick={() => setTab("plan")}
+          >
+            <ListTodo size={16} /> Upcoming
+          </button>
+          <button
+            className={tab === "uploaded" ? "active" : ""}
+            onClick={() => setTab("uploaded")}
+          >
+            <CheckCircle2 size={16} /> Uploaded
+          </button>
+        </div>
+        <label className="manager-search">
+          <Search size={17} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Find a song"
+          />
+        </label>
+      </div>
+      {message && (
+        <div className={`manager-message ${message.type}`} role="status">
+          {message.type === "warning" ? (
+            <AlertTriangle size={17} />
+          ) : (
+            <CheckCircle2 size={17} />
+          )}
+          {message.text}
+          <button onClick={() => setMessage(null)} aria-label="Dismiss message">
+            ×
+          </button>
+        </div>
+      )}
+      {tab === "plan" ? (
+        <>
+          <section className="manager-add-grid">
+            <form className="manager-card add-song-card" onSubmit={addTask}>
+              <div className="card-kicker">
+                <Plus size={16} /> Add one song
+              </div>
+              <h2>Plan your next upload.</h2>
+              <p>
+                We will warn you if this title already exists in your live
+                library.
+              </p>
+              <div className="manager-form-row">
+                <input
+                  value={form.title}
+                  onChange={(event) =>
+                    setForm({ ...form, title: event.target.value })
+                  }
+                  placeholder="Song title"
+                  aria-label="Song title"
+                />
+                <div
+                  className="choice-buttons"
+                  role="group"
+                  aria-label="Language"
+                >
+                  {(
+                    [
+                      ["hindi", "Hindi"],
+                      ["nepali", "Nepali"],
+                      ["english", "English"],
+                    ] as const
+                  ).map(([value, label]) => (
+                    <button
+                      type="button"
+                      key={value}
+                      className={form.language === value ? "active" : ""}
+                      onClick={() => setForm({ ...form, language: value })}
+                    >
+                      {label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <div
+                className="choice-buttons priority-buttons"
+                role="group"
+                aria-label="Priority"
+              >
+                {(
+                  [
+                    ["high", "High"],
+                    ["normal", "Normal"],
+                    ["low", "Low"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={
+                      form.priority === value ? `active ${value}` : value
+                    }
+                    onClick={() => setForm({ ...form, priority: value })}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={form.notes}
+                onChange={(event) =>
+                  setForm({ ...form, notes: event.target.value })
+                }
+                placeholder="Optional note: find Roman lyrics, confirm artist…"
+                aria-label="Note"
+                rows={2}
+              />
+              <button className="manager-primary" type="submit">
+                Add to upcoming <Plus size={17} />
+              </button>
+            </form>
+            <div className="manager-card bulk-card">
+              <div className="card-kicker">
+                <ClipboardPaste size={16} /> Paste a batch
+              </div>
+              <h2>Build your pipeline quickly.</h2>
+              <p>
+                One title per line. Bullets and numbering are cleaned
+                automatically.
+              </p>
+              <div
+                className="bulk-language"
+                role="group"
+                aria-label="Language for pasted songs"
+              >
+                {(
+                  [
+                    ["hindi", "Hindi"],
+                    ["nepali", "Nepali"],
+                    ["english", "English"],
+                  ] as const
+                ).map(([value, label]) => (
+                  <button
+                    type="button"
+                    key={value}
+                    className={bulkLanguage === value ? "active" : ""}
+                    onClick={() => setBulkLanguage(value)}
+                  >
+                    {label}
+                  </button>
+                ))}
+              </div>
+              <textarea
+                value={bulk}
+                onChange={(event) => setBulk(event.target.value)}
+                placeholder={"Yeshu Tera Naam\nPrabhu Ko Mahima\nAmazing Grace"}
+                rows={6}
+                aria-label="Upcoming song titles"
+              />
+              <button
+                className="manager-secondary"
+                onClick={importBulk}
+                disabled={!bulk.trim()}
+              >
+                Add list to upcoming <ClipboardPaste size={16} />
+              </button>
+            </div>
+          </section>
+          <section className="manager-list-section">
+            <div className="manager-section-head">
+              <div>
+                <span className="eyebrow">UPLOAD PIPELINE</span>
+                <h2>
+                  Upcoming songs <span>{visibleTasks.length}</span>
+                </h2>
+              </div>
+              <span className="manager-hint">
+                Your list is saved in this browser
+              </span>
+            </div>
+            {visibleTasks.length ? (
+              <div className="task-list">
+                {visibleTasks.map((task) => (
+                  <article className="task-row" key={task.id}>
+                    <div className={`task-priority ${task.priority}`} />
+                    <div className="task-main">
+                      <input
+                        className="task-title-input"
+                        value={task.title}
+                        onChange={(event) =>
+                          updateTask(task.id, { title: event.target.value })
+                        }
+                        aria-label={`Edit ${task.title}`}
+                      />
+                      <div className="task-meta">
+                        <span className={`task-language ${task.language}`}>
+                          {task.language}
+                        </span>
+                        {task.notes && <span>{task.notes}</span>}
+                      </div>
+                    </div>
+                    <div
+                      className="task-status-buttons"
+                      role="group"
+                      aria-label={`Status for ${task.title}`}
+                    >
+                      {(
+                        [
+                          ["planned", "Planned"],
+                          ["in-progress", "In progress"],
+                          ["ready", "Ready"],
+                        ] as const
+                      ).map(([value, label]) => (
+                        <button
+                          type="button"
+                          key={value}
+                          className={task.status === value ? "active" : ""}
+                          onClick={() => updateTask(task.id, { status: value })}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                    <button
+                      className="task-delete"
+                      onClick={() => removeTask(task.id)}
+                      aria-label={`Remove ${task.title}`}
+                    >
+                      <Trash2 size={16} />
+                    </button>
+                  </article>
+                ))}
+              </div>
+            ) : (
+              <div className="manager-empty">
+                <ListTodo size={25} />
+                <h3>Your upload pipeline is clear.</h3>
+                <p>
+                  Add a title above or paste your next batch to get started.
+                </p>
+              </div>
+            )}
+          </section>
+        </>
+      ) : (
+        <section className="manager-list-section">
+          <div className="manager-section-head">
+            <div>
+              <span className="eyebrow">LIVE LIBRARY</span>
+              <h2>
+                Uploaded songs <span>{visibleUploaded.length}</span>
+              </h2>
+            </div>
+            <span className="manager-hint">
+              Automatically synced from WordPress
+            </span>
+          </div>
+          {visibleUploaded.length ? (
+            <div className="uploaded-list">
+              {visibleUploaded.map((song) => (
+                <Link
+                  href={`/${song.language}/${song.slug}`}
+                  className="uploaded-row"
+                  key={song.id}
+                >
+                  <div className="uploaded-icon">
+                    <Upload size={17} />
+                  </div>
+                  <div>
+                    <strong>{song.title}</strong>
+                    <span>{song.artist || "Artist not added"}</span>
+                  </div>
+                  <time>
+                    {song.updatedAt
+                      ? new Date(song.updatedAt).toLocaleDateString()
+                      : "Published"}
+                  </time>
+                </Link>
+              ))}
+            </div>
+          ) : (
+            <div className="manager-empty">
+              <Search size={25} />
+              <h3>No matching songs.</h3>
+              <p>Try another title or artist.</p>
+            </div>
+          )}
+        </section>
+      )}
+    </div>
+  );
 }
