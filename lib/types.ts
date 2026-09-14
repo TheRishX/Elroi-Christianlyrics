@@ -9,6 +9,7 @@ export type Song = {
   romanAlternateTitles?: string[];
   language: Language;
   artist: string;
+  worshipTeam?: string;
   excerpt?: string;
   lyrics: LyricSection[];
   genres?: string[];
@@ -26,6 +27,7 @@ export type Song = {
   songType?: string;
   themes?: string[];
   occasions?: string[];
+  lastReviewedAt?: string;
   youtube?: { channel?: string; description?: string; thumbnail?: string; publishedAt?: string };
 };
 export type SearchMatchType =

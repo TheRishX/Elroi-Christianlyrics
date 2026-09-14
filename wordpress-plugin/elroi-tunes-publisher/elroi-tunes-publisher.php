@@ -52,11 +52,13 @@ final class Elroi_Tunes_Publisher {
     $post = ['post_type' => 'song', 'post_title' => $title, 'post_name' => $slug, 'post_status' => ($body['status'] ?? 'publish') === 'draft' ? 'draft' : 'publish', 'post_content' => $this->content($lyrics)];
     if ($existing) { $post['ID'] = $existing->ID; $id = wp_update_post($post, true); } else { $id = wp_insert_post($post, true); }
     if (is_wp_error($id)) return $id;
-    $meta = ['roman_title'=>'romanTitle','artist'=>'artist','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','release_year'=>'releaseYear','song_key'=>'songKey','tempo'=>'tempo','youtube_url'=>'youtubeUrl','audio_url'=>'audioUrl','excerpt'=>'excerpt'];
+    $meta = ['roman_title'=>'romanTitle','artist'=>'artist','worship_team'=>'worshipTeam','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','release_year'=>'releaseYear','song_key'=>'songKey','tempo'=>'tempo','youtube_url'=>'youtubeUrl','audio_url'=>'audioUrl','excerpt'=>'excerpt','last_reviewed_at'=>'lastReviewedAt'];
     foreach ($meta as $key => $field) update_post_meta($id, $key, $this->text($body[$field] ?? ''));
     update_post_meta($id, 'language', $language); update_post_meta($id, 'lyrics', wp_json_encode($lyrics, JSON_UNESCAPED_UNICODE));
-    update_post_meta($id, 'alternate_titles', wp_json_encode([$title], JSON_UNESCAPED_UNICODE));
-    update_post_meta($id, 'roman_alternate_titles', wp_json_encode(array_filter([$body['romanTitle'] ?? '']), JSON_UNESCAPED_UNICODE));
+    $alternate_titles = $this->list($body['alternateTitles'] ?? []); if (!$alternate_titles) $alternate_titles = [$title];
+    $roman_alternate_titles = $this->list($body['romanAlternateTitles'] ?? []); if (!$roman_alternate_titles) $roman_alternate_titles = array_filter([$body['romanTitle'] ?? '']);
+    update_post_meta($id, 'alternate_titles', wp_json_encode($alternate_titles, JSON_UNESCAPED_UNICODE));
+    update_post_meta($id, 'roman_alternate_titles', wp_json_encode($roman_alternate_titles, JSON_UNESCAPED_UNICODE));
     update_post_meta($id, 'seo_title', $this->text($body['seo']['title'] ?? '')); update_post_meta($id, 'seo_description', $this->text($body['seo']['description'] ?? ''));
     update_post_meta($id, 'youtube_metadata', wp_json_encode(is_array($body['youtube'] ?? null) ? $body['youtube'] : [], JSON_UNESCAPED_UNICODE));
     foreach (['genre'=>'genres','worship_category'=>'categories','theme'=>'themes','occasion'=>'occasions'] as $taxonomy => $field) if (taxonomy_exists($taxonomy)) wp_set_object_terms($id, $this->list($body[$field] ?? []), $taxonomy, false);
