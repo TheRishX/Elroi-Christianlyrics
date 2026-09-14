@@ -16,6 +16,9 @@ function endpoint(path: string) {
 async function request(path: string, init: RequestInit = {}) {
   const headers = new Headers(init.headers);
   headers.set("X-Elroi-API-Token", token || "");
+  // Some managed WordPress hosts normalize custom headers. Keep this server-
+  // side fallback; the token is never sent to browser JavaScript.
+  headers.set("Authorization", `Bearer ${token || ""}`);
   headers.set("Accept", "application/json");
   if (init.body) headers.set("Content-Type", "application/json");
   const response = await fetch(endpoint(path), {
