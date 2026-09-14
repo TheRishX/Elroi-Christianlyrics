@@ -9,7 +9,9 @@ if (!defined('ABSPATH')) exit;
 final class Elroi_Tunes_Publisher {
   private $token;
   public function __construct() {
-    $this->token = getenv('WORDPRESS_API_TOKEN') ?: '';
+    // Hosting panels commonly do not expose custom PHP environment variables.
+    // Reuse the private token already stored by the active lyrics plugin first.
+    $this->token = getenv('WORDPRESS_API_TOKEN') ?: get_option('elroi_todo_api_token', '');
     add_action('rest_api_init', [$this, 'routes']);
   }
   public function routes() {
