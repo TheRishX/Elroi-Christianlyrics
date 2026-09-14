@@ -5,75 +5,65 @@ import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
 type DisplaySection = { label: string; original: string; roman?: string };
 
-const HEADING =
-  /(?:^|\n)\s*(Verse|Chorus|Pre[ -]?Chorus|Post[ -]?Chorus|Bridge|Ending|Refrain|Hook|Intro|Outro|Interlude|Instrumental|Breakdown|Solo|Vamp|Tag|Coda|Stanza|वर्स|वार्स|कोरस|प्री[ -]?कोरस|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो|अंतरा|मुखड़ा)(?:\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten))?\s*:?\s*(?:\n|$)/giu;
+const HEADING = /(?:^|\n)\s*\[([^\]\n]+)\]\s*(?:\n|$)/gu;
 
-function normalizeLabel(raw: string, number?: string) {
-  const value = raw.toLocaleLowerCase();
-  const label = /pre[ -]?chorus|प्री[ -]?कोरस/.test(value)
-    ? "Pre-Chorus"
-    : /post[ -]?chorus/.test(value)
-      ? "Post-Chorus"
-      : /verse|वर्स|वार्स|अंतरा/.test(value)
-        ? "Verse"
-        : /chorus|कोरस|मुखड़ा/.test(value)
-          ? "Chorus"
-          : /bridge|ब्रिज/.test(value)
-            ? "Bridge"
-            : /refrain|रिफ्रेन/.test(value)
-              ? "Refrain"
-              : /hook/.test(value)
-                ? "Hook"
-                : /intro|इंट्रो/.test(value)
-                  ? "Intro"
-                  : /outro|आउट्रो/.test(value)
-                    ? "Outro"
-                    : /interlude/.test(value)
-                      ? "Interlude"
-                      : /instrumental/.test(value)
-                        ? "Instrumental"
-                        : /breakdown/.test(value)
-                          ? "Breakdown"
-                          : /solo/.test(value)
-                            ? "Solo"
-                            : /vamp/.test(value)
-                              ? "Vamp"
-                              : /tag/.test(value)
-                                ? "Tag"
-                                : /coda/.test(value)
-                                  ? "Coda"
-                                  : /stanza/.test(value)
-                                    ? "Stanza"
-                                    : "Ending";
-  const numbers: Record<string, string> = {
-    one: "1",
-    two: "2",
-    three: "3",
-    four: "4",
-    five: "5",
-    six: "6",
-    seven: "7",
-    eight: "8",
-    nine: "9",
-    ten: "10",
-  };
-  return `${label}${number ? ` ${numbers[number.toLowerCase()] || number}` : ""}`;
+function normalizeLabel(raw: string) {
+  return raw.trim().replace(/\s+/g, " ");
 }
 
 function cleanLegacy(value: string, roman = false) {
-  const cleaned = value
-    .normalize("NFC")
+  // Keep the lyric payload byte-for-byte readable. Older WordPress records
+  // sometimes contain the literal characters "\\n"; decode only those
+  // escape sequences. Never treat a normal Latin `n` as a newline: doing so
+  // can split or delete valid lyric text next to Devanagari.
+  return value
     .replace(/\uFFFD/g, "")
     .replace(/\\r\\n|\\n|\\r/g, "\n")
-    .replace(
-      roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g,
-      "\n",
-    );
-  if (roman) return cleaned;
-  return cleaned
-    .replace(/[?�]?n(?=[ \t]*(?:\n|$))/g, "")
-    .replace(/(^|\n|[ \t])([?]+|[·•⋮…⁙⁖∴]+)(?=[\u0900-\u097f])/g, "$1")
     .normalize("NFC");
+}
+
+function repairDevanagariLine(value: string, roman = "") {
+  const text = value.trimStart();
+  if (!text) return value;
+
+  // A combining Devanagari mark without its base renders as the dotted
+  // circle seen in the reader. The source has lost its leading अ; restore
+  // that base rather than exposing a broken glyph.
+  const first = Array.from(text)[0];
+  if (first && /\p{Mark}/u.test(first)) return `${value.slice(0, value.length - text.length)}अ${text}`;
+
+  // When the native line begins with ब but the preserved Roman line begins
+  // with "Ab", the initial अ was dropped upstream. Use the Roman counterpart
+  // only for this unambiguous one-character repair.
+  if (/^ab(?:\s|$)/iu.test(roman.trim()) && /^ब(?:\s|$)/u.test(text))
+    return `${value.slice(0, value.length - text.length)}अ${text}`;
+  return value;
+}
+
+function repairDevanagari(value: string, roman = "") {
+  const nativeLines = value.split("\n");
+  const romanLines = roman.split("\n");
+  return nativeLines
+    .map((line, index) => repairDevanagariLine(line, romanLines[index] || ""))
+    .join("\n");
+}
+
+function alignNativeSections(
+  native: DisplaySection[],
+  roman: DisplaySection[],
+): DisplaySection[] {
+  // WordPress can store all native lyrics in one block while the Roman
+  // version contains explicit Verse/Chorus headings. Use the Roman section
+  // line counts to keep every stanza visible instead of mapping only index 0.
+  if (native.length !== 1 || roman.length <= 1) return native;
+  const lines = native[0].original.split("\n");
+  let offset = 0;
+  return roman.map((section) => {
+    const count = Math.max(1, section.original.split("\n").length);
+    const original = lines.slice(offset, offset + count).join("\n").trim();
+    offset += count;
+    return { label: section.label, original };
+  }).filter((section) => section.original);
 }
 
 function splitSections(value: string, fallback: string): DisplaySection[] {
@@ -81,12 +71,7 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
   if (!text) return [];
   HEADING.lastIndex = 0;
   const matches = [...text.matchAll(HEADING)];
-  const fallbackLabel =
-    /(?:verse|chorus|bridge|ending|refrain|hook|intro|outro|interlude|instrumental|breakdown|solo|vamp|tag|coda|stanza|वर्स|वार्स|कोरस|प्री|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो|अंतरा|मुखड़ा)/iu.test(
-      fallback,
-    )
-      ? normalizeLabel(fallback)
-      : fallback;
+  const fallbackLabel = fallback;
   if (!matches.length) return [{ label: fallbackLabel, original: text }];
   const result: DisplaySection[] = [];
   const firstIndex = matches[0].index ?? 0;
@@ -102,7 +87,7 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
         ? (matches[index + 1].index ?? text.length)
         : text.length;
     result.push({
-      label: normalizeLabel(match[1], match[2]),
+      label: normalizeLabel(match[1]),
       original: text.slice(start, end).trim(),
     });
   });
@@ -113,15 +98,15 @@ function getDisplaySections(song: Song): DisplaySection[] {
   const original: DisplaySection[] = [];
   const roman: DisplaySection[] = [];
   song.lyrics.forEach((section) => {
-    original.push(...splitSections(section.original, section.label));
+    const preservedRoman = cleanLegacy(section.roman || "", true);
+    original.push(...splitSections(repairDevanagari(cleanLegacy(section.original), preservedRoman), section.label));
     if (section.roman)
-      roman.push(
-        ...splitSections(cleanLegacy(section.roman, true), section.label),
-      );
+      roman.push(...splitSections(preservedRoman, section.label));
   });
-  return original.map((section, index) => ({
+  const alignedOriginal = alignNativeSections(original, roman);
+  return alignedOriginal.map((section, index) => ({
     ...section,
-    roman: roman[index]?.original || song.lyrics[index]?.roman || "",
+    roman: roman[index]?.original || "",
   }));
 }
 

@@ -11,6 +11,25 @@ function listFrom(data: unknown): Song[] {
     return (data as { items: Song[] }).items;
   return [];
 }
+function repairDevanagari(value: string, roman = "") {
+  const nativeLines = value.split("\n");
+  const romanLines = roman.split("\n");
+  return nativeLines.map((line, index) => {
+    const leading = line.match(/^\s*/)?.[0] || "";
+    const text = line.slice(leading.length);
+    if (!text) return line;
+    const first = Array.from(text)[0];
+    // A leading Devanagari combining mark has lost its base character and
+    // otherwise renders as a dotted circle. Restore the missing अ.
+    if (first && /\p{Mark}/u.test(first)) return `${leading}अ${text}`;
+    // Preserve the common Roman/native pair: "Ab ..." must render as "अब ...".
+    if (/^ab(?:\s|$)/iu.test((romanLines[index] || "").trim()) && /^ब(?:\s|$)/u.test(text)) return `${leading}अ${text}`;
+    return line;
+  }).join("\n");
+}
+function repairSong(song: Song): Song {
+  return { ...song, lyrics: (song.lyrics || []).map(section => ({ ...section, original: repairDevanagari(section.original || "", section.roman || "") })) };
+}
 export async function getSongs(language?: Language): Promise<Song[]> {
   if (!base)
     return language
@@ -23,7 +42,7 @@ export async function getSongs(language?: Language): Promise<Song[]> {
       next: { revalidate: 300, tags: ["songs"] },
     });
     if (!res.ok) throw new Error("WordPress unavailable");
-    return listFrom(await res.json());
+    return listFrom(await res.json()).map(repairSong);
   } catch {
     return language
       ? mockSongs.filter((s) => s.language === language)
@@ -37,7 +56,7 @@ export async function getSong(slug: string): Promise<Song | undefined> {
       next: { revalidate: 300, tags: [`song:${slug}`] },
     });
     if (!res.ok) return undefined;
-    return await res.json();
+    return repairSong(await res.json());
   } catch {
     return mockSongs.find((s) => s.slug === slug);
   }

@@ -17,6 +17,16 @@ export type Song = {
   audioUrl?: string;
   updatedAt?: string;
   seo?: { title?: string; description?: string };
+  composer?: string;
+  lyricist?: string;
+  album?: string;
+  releaseYear?: string;
+  songKey?: string;
+  tempo?: string;
+  songType?: string;
+  themes?: string[];
+  occasions?: string[];
+  youtube?: { channel?: string; description?: string; thumbnail?: string; publishedAt?: string };
 };
 export type SearchMatchType =
   "title" | "roman_title" | "artist" | "lyrics" | "roman_lyrics";
