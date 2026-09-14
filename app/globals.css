@@ -31,6 +31,10 @@
 .task-list,.uploaded-list { border-top:1px solid var(--line); }.task-row,.uploaded-row { display:flex; align-items:center; gap:14px; min-height:76px; padding:12px 4px; border-bottom:1px solid var(--line); }.task-priority { width:4px; align-self:stretch; border-radius:4px; background:#b9c3b1; }.task-priority.high { background:#bb765c; }.task-priority.low { background:#d6c185; }.task-main { flex:1; min-width:0; }.task-title-input { width:100%; border:0; padding:0; background:transparent; color:var(--ink); font-size:15px; font-weight:600; }.task-meta { display:flex; align-items:center; gap:12px; margin-top:6px; color:var(--muted); font-size:11px; }.task-meta span { display:flex; align-items:center; gap:4px; }.task-language { color:var(--olive); text-transform:capitalize; }.task-status { border:1px solid var(--line); border-radius:8px; padding:8px 9px; color:var(--muted); background:#fff; font-size:11px; }.task-status.ready { color:var(--olive-dark); background:#edf5e9; }.task-delete { border:0; background:transparent; color:#a8aea4; padding:8px; }.task-delete:hover { color:#9a5c49; }
 .manager-empty { display:grid; place-items:center; padding:58px 20px; border:1px dashed #d8e1d1; border-radius:14px; color:var(--muted); text-align:center; }.manager-empty svg { color:var(--olive); }.manager-empty h3 { margin:12px 0 5px; color:var(--ink); font-size:17px; font-weight:500; }.manager-empty p { margin:0; font-size:13px; }
 .uploaded-row { color:inherit; text-decoration:none; }.uploaded-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; color:var(--olive); background:#edf3e8; }.uploaded-row > div:nth-child(2) { flex:1; }.uploaded-row strong,.uploaded-row span { display:block; }.uploaded-row strong { font-size:14px; }.uploaded-row span,.uploaded-row time { color:var(--muted); font-size:12px; }.uploaded-row time { font-variant-numeric:tabular-nums; }
+.todo-gate { min-height:70vh; display:grid; place-items:center; padding:48px 20px; }
+.todo-gate-card { width:min(100%, 410px); padding:36px; text-align:center; border:1px solid var(--line); border-radius:22px; background:#fff; box-shadow:0 18px 48px rgba(45,68,39,.1); }
+.todo-lock { display:grid; place-items:center; width:54px; height:54px; margin:0 auto 20px; border-radius:16px; color:var(--olive); background:#edf3e8; }
+.todo-gate-card h1 { margin:12px 0 8px; font-size:32px; font-weight:500; letter-spacing:-1.2px; }.todo-gate-card p { margin:0 0 25px; color:var(--muted); font-size:14px; }.todo-gate-card form { display:grid; gap:9px; text-align:left; }.todo-gate-card label { color:var(--ink); font-size:12px; font-weight:600; }.todo-gate-card input { width:100%; border:1px solid #dfe6d9; border-radius:9px; padding:13px; text-align:center; letter-spacing:4px; font-size:18px; }.todo-gate-card button { border:0; border-radius:9px; padding:13px; color:#fff; background:var(--olive); font-size:13px; font-weight:600; }.todo-gate-error { color:#9a5c49; font-size:12px; text-align:center; }
 .empty-icon {
   display: inline-grid;
   place-items: center;
@@ -1138,7 +1142,7 @@ svg {
     font-size: 10px;
     font-weight: 500;
     color: #8a9085;
-    width: 20%;
+    width: 25%;
     min-height: 53px;
   }
   .nav-icon {

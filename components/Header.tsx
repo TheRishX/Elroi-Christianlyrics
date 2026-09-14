@@ -1,13 +1,12 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { ArrowLeft, Bookmark, BookOpen, House, ListTodo, Search } from "lucide-react";
+import { ArrowLeft, Bookmark, BookOpen, House, Search } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/search", label: "Search", icon: Search },
   { href: "/browse", label: "Browse", icon: BookOpen },
   { href: "/bookmarks", label: "Saved", icon: Bookmark },
-  { href: "/todo", label: "To-do", icon: ListTodo },
 ];
 export function DesktopMenu() {
   const path = usePathname();
