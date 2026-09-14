@@ -1,11 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Song } from "@/lib/types";
+import { normalizeLyricText } from "@/lib/lyrics";
 import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
 type DisplaySection = { label: string; original: string; roman?: string };
 
-const HEADING = /(?:^|\n)\s*\[([^\]\n]+)\]\s*(?:\n|$)/gu;
+// Bracket tags are the current format. The bare-heading branch is only a
+// migration reader for older records that were saved before tags were kept.
+const HEADING = /(?:^|\n)\s*(?:\[([^\]\n]+)\]|((?:pre-chorus|verse(?:\s+\d+)?|chorus|bridge|intro|outro|refrain)))\s*(?:\n|$)/giu;
 
 function normalizeLabel(raw: string) {
   return raw.trim().replace(/\s+/g, " ");
@@ -16,10 +19,7 @@ function cleanLegacy(value: string, roman = false) {
   // sometimes contain the literal characters "\\n"; decode only those
   // escape sequences. Never treat a normal Latin `n` as a newline: doing so
   // can split or delete valid lyric text next to Devanagari.
-  return value
-    .replace(/\uFFFD/g, "")
-    .replace(/\\r\\n|\\n|\\r/g, "\n")
-    .normalize("NFC");
+  return normalizeLyricText(value);
 }
 
 function repairDevanagariLine(value: string, roman = "") {
@@ -87,7 +87,7 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
         ? (matches[index + 1].index ?? text.length)
         : text.length;
     result.push({
-      label: normalizeLabel(match[1]),
+      label: normalizeLabel(match[1] || match[2] || fallbackLabel),
       original: text.slice(start, end).trim(),
     });
   });

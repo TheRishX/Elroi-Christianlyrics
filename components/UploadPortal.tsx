@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { CheckCircle2, Plus, X } from "lucide-react";
 import { LyricSection } from "@/lib/types";
 import { UploadSong } from "@/lib/upload";
+import { normalizeLyricText } from "@/lib/lyrics";
 
 const blank: UploadSong = { title: "", romanTitle: "", alternateTitles: [], romanAlternateTitles: [], language: "hindi", artist: "", worshipTeam: "", composer: "", lyricist: "", album: "", releaseYear: "", songKey: "", tempo: "", youtubeUrl: "", audioUrl: "", excerpt: "", lastReviewedAt: "", genres: [], categories: [], themes: [], occasions: [], slug: "", lyrics: [], seo: { title: "", description: "" } };
 const choices = { genres: ["Worship", "Praise", "Gospel", "Contemporary", "Hymn"], categories: ["Worship", "Praise", "Prayer", "Christmas", "Easter"], themes: ["Jesus", "Faith", "Grace", "Hope", "Holy Spirit", "Salvation"], occasions: ["Sunday Service", "Prayer Meeting", "Christmas", "Easter", "Communion"] } as const;
@@ -12,7 +13,7 @@ function parseLyrics(original: string, roman: string): LyricSection[] {
   const parse = (value: string) => {
     const rows: { label: string; text: string }[] = []; let label = "Lyrics"; let lines: string[] = [];
     const flush = () => { const text = lines.join("\n").trim(); if (text) rows.push({ label, text }); lines = []; };
-    value.replace(/\r\n?/g, "\n").split("\n").forEach((line) => { const tag = line.trim().match(/^\[([^\]\n]+)\]$/); if (tag) { flush(); label = tag[1].trim() || "Lyrics"; } else lines.push(line); }); flush(); return rows;
+    normalizeLyricText(value).split("\n").forEach((line) => { const tag = line.trim().match(/^\[([^\]\n]+)\]$/); if (tag) { flush(); label = tag[1].trim() || "Lyrics"; } else lines.push(line); }); flush(); return rows;
   };
   const native = parse(original), romanRows = parse(roman);
   return Array.from({ length: Math.max(native.length, romanRows.length) }, (_, index) => ({ label: native[index]?.label || romanRows[index]?.label || `Section ${index + 1}`, original: native[index]?.text || "", roman: romanRows[index]?.text || "" })).filter((section) => section.original || section.roman);

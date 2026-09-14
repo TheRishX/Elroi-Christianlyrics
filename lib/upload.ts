@@ -1,4 +1,5 @@
 import { Song } from "./types";
+import { normalizeLyricText } from "./lyrics";
 
 export type UploadSong = Omit<Song, "id" | "updatedAt"> & {
   status?: "draft" | "publish";
@@ -15,8 +16,8 @@ export function cleanLyrics(value: unknown) {
   return value
     .map((section) => ({
       label: String(section?.label || "Section").trim(),
-      original: String(section?.original || "").trim(),
-      ...(section?.roman ? { roman: String(section.roman).trim() } : {}),
+      original: normalizeLyricText(section?.original || "").trim(),
+      ...(section?.roman ? { roman: normalizeLyricText(section.roman).trim() } : {}),
     }))
     .filter((section) => section.original || section.roman);
 }

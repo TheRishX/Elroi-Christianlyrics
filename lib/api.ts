@@ -1,5 +1,6 @@
 import { songs as mockSongs } from "./mock-data";
 import { Language, SearchResult, Song, SongSuggestion } from "./types";
+import { normalizeLyricText } from "./lyrics";
 const base = process.env.WORDPRESS_API_URL;
 function listFrom(data: unknown): Song[] {
   if (Array.isArray(data)) return data as Song[];
@@ -28,7 +29,7 @@ function repairDevanagari(value: string, roman = "") {
   }).join("\n");
 }
 function repairSong(song: Song): Song {
-  return { ...song, lyrics: (song.lyrics || []).map(section => ({ ...section, original: repairDevanagari(section.original || "", section.roman || "") })) };
+  return { ...song, lyrics: (song.lyrics || []).map(section => ({ ...section, original: repairDevanagari(normalizeLyricText(section.original || ""), normalizeLyricText(section.roman || "")), roman: section.roman ? normalizeLyricText(section.roman) : section.roman })) };
 }
 export async function getSongs(language?: Language): Promise<Song[]> {
   if (!base)
