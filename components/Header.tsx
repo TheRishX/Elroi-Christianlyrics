@@ -1,6 +1,7 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { ArrowLeft, Bookmark, BookOpen, House, Search } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
@@ -37,6 +38,10 @@ export function DesktopMenu() {
 export function Header() {
   const path = usePathname();
   const router = useRouter();
+  useEffect(() => {
+    document.body.classList.toggle("upload-mode", path === "/upload");
+    return () => document.body.classList.remove("upload-mode");
+  }, [path]);
   const isLyricsPage = /^\/(hindi|nepali|english)\/[^/]+$/.test(path);
   const active = (href: string) =>
     href === "/browse"
