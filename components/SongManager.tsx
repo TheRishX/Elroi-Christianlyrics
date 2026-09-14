@@ -56,6 +56,39 @@ function findUploaded(title: string, songs: Song[]) {
     ].some((value) => key(value) === wanted),
   );
 }
+function possibleUploaded(title: string, songs: Song[]) {
+  const wanted = key(title);
+  if (!wanted) return [];
+  const wantedWords = new Set(wanted.split(" "));
+  return songs
+    .map((song) => {
+      const names = [
+        song.title,
+        song.romanTitle || "",
+        ...(song.alternateTitles || []),
+        ...(song.romanAlternateTitles || []),
+      ]
+        .map(key)
+        .filter(Boolean);
+      const score = Math.max(
+        ...names.map((name) => {
+          const words = new Set(name.split(" "));
+          const overlap = [...wantedWords].filter((word) =>
+            words.has(word),
+          ).length;
+          return (
+            overlap / Math.max(wantedWords.size, words.size) +
+            (name.includes(wanted) || wanted.includes(name) ? 0.45 : 0)
+          );
+        }),
+      );
+      return { song, score };
+    })
+    .filter((item) => item.score >= 0.35)
+    .sort((a, b) => b.score - a.score)
+    .slice(0, 5)
+    .map((item) => item.song);
+}
 async function api(path: string, init?: RequestInit) {
   const response = await fetch(path, {
     ...init,
@@ -75,6 +108,8 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
     [tab, setTab] = useState<"plan" | "uploaded" | "history">("plan"),
     [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
+    [finishingTaskId, setFinishingTaskId] = useState<number | null>(null),
+    [finishSongId, setFinishSongId] = useState(""),
     [error, setError] = useState(""),
     [message, setMessage] = useState<{
       type: "warning" | "success";
@@ -208,6 +243,12 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
         type: "warning",
         text: `Already on your upcoming list: “${title}”.`,
       });
+    const similar = possibleUploaded(title, uploadedSongs)[0];
+    if (similar)
+      setMessage({
+        type: "warning",
+        text: `Possible existing lyric: “${similar.title}”. Review it before publishing a duplicate.`,
+      });
     setSaving(true);
     try {
       const created = await api("/api/todo/tasks", {
@@ -284,12 +325,28 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
       setTasks((current) =>
         current.map((task) => (task.id === id ? updated : task)),
       );
+      return true;
     } catch (e) {
       setMessage({
         type: "warning",
         text: e instanceof Error ? e.message : "Could not update task.",
       });
+      return false;
     }
+  }
+  async function renameTask(id: number, title: string) {
+    const clean = title.trim();
+    if (!clean) return;
+    if (
+      tasks.some((task) => task.id !== id && key(task.title) === key(clean))
+    ) {
+      setMessage({
+        type: "warning",
+        text: `Another task already uses “${clean}”.`,
+      });
+      return;
+    }
+    await updateTask(id, { title: clean });
   }
   async function removeTask(id: number) {
     try {
@@ -301,6 +358,34 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
         text: e instanceof Error ? e.message : "Could not delete task.",
       });
     }
+  }
+  function chooseStatus(id: number, status: string) {
+    if (status === "uploaded") {
+      const task = tasks.find((item) => item.id === id);
+      const exact = task ? findUploaded(task.title, uploadedSongs) : undefined;
+      setFinishingTaskId(id);
+      setFinishSongId(exact ? String(exact.id) : "");
+      return;
+    }
+    updateTask(id, { status: status as TaskStatus });
+  }
+  async function finishTask() {
+    if (!finishingTaskId || !finishSongId) return;
+    const song = uploadedSongs.find((item) => String(item.id) === finishSongId);
+    if (!song) return;
+    const saved = await updateTask(finishingTaskId, {
+      status: "uploaded",
+      uploadedSongId: song.id,
+      uploadedSongSlug: song.slug,
+      uploadedAt: song.updatedAt || new Date().toISOString(),
+    });
+    if (!saved) return;
+    setFinishingTaskId(null);
+    setFinishSongId("");
+    setMessage({
+      type: "success",
+      text: `Linked “${song.title}” and marked the task finished.`,
+    });
   }
   const languages = [
       ["hindi", "Hindi"],
@@ -315,7 +400,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
     statuses = [
       ["planned", "Planned"],
       ["in-progress", "In progress"],
-      ["ready", "Ready"],
+      ["uploaded", "Finished"],
     ] as const;
   const choices = (
     selected: string,
@@ -522,9 +607,7 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                             e.target.value.trim() &&
                             e.target.value.trim() !== task.title
                           )
-                            updateTask(task.id, {
-                              title: e.target.value.trim(),
-                            });
+                            renameTask(task.id, e.target.value);
                         }}
                         aria-label={`Edit ${task.title}`}
                       />
@@ -538,8 +621,61 @@ export function SongManager({ uploadedSongs }: { uploadedSongs: Song[] }) {
                     {choices(
                       task.status,
                       statuses,
-                      (value) => updateTask(task.id, { status: value }),
+                      (value) => chooseStatus(task.id, value),
                       "task-status-buttons",
+                    )}
+                    {finishingTaskId === task.id && (
+                      <div className="finish-picker">
+                        <label htmlFor={`finish-song-${task.id}`}>
+                          Link the published lyric before finishing
+                        </label>
+                        <select
+                          id={`finish-song-${task.id}`}
+                          value={finishSongId}
+                          onChange={(event) =>
+                            setFinishSongId(event.target.value)
+                          }
+                        >
+                          <option value="">Choose uploaded song…</option>
+                          {possibleUploaded(task.title, uploadedSongs).map(
+                            (song) => (
+                              <option value={song.id} key={song.id}>
+                                {song.title} · {song.language}
+                              </option>
+                            ),
+                          )}
+                          <optgroup label="All published lyrics">
+                            {uploadedSongs
+                              .filter(
+                                (song) =>
+                                  !possibleUploaded(
+                                    task.title,
+                                    uploadedSongs,
+                                  ).some((match) => match.id === song.id),
+                              )
+                              .map((song) => (
+                                <option value={song.id} key={song.id}>
+                                  {song.title} · {song.language}
+                                </option>
+                              ))}
+                          </optgroup>
+                        </select>
+                        <div className="finish-picker-actions">
+                          <button
+                            type="button"
+                            onClick={finishTask}
+                            disabled={!finishSongId}
+                          >
+                            Confirm finished
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => setFinishingTaskId(null)}
+                          >
+                            Cancel
+                          </button>
+                        </div>
+                      </div>
                     )}
                     <button
                       className="task-delete"

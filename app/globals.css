@@ -33,6 +33,12 @@
 .task-status-buttons { display:flex; gap:3px; flex-wrap:wrap; justify-content:flex-end; max-width:250px; }
 .task-status-buttons button { border:1px solid var(--line); border-radius:7px; padding:7px 8px; color:var(--muted); background:#fff; font-size:10px; white-space:nowrap; }
 .task-status-buttons button.active { color:var(--olive-dark); border-color:#d2e2c9; background:#edf5e9; }
+.finish-picker { flex-basis:100%; margin:4px 0 4px 18px; padding:13px 15px; border:1px solid #e7d6ad; border-radius:11px; background:#fffaf0; }
+.finish-picker label { display:block; margin-bottom:7px; color:#795b20; font-size:11px; font-weight:600; }
+.finish-picker select { width:100%; border:1px solid #e5d5b2; border-radius:8px; padding:9px 10px; background:#fff; color:var(--ink); font-size:12px; }
+.finish-picker-actions { display:flex; gap:8px; margin-top:9px; }
+.finish-picker-actions button { border:0; border-radius:8px; padding:8px 11px; color:#fff; background:var(--olive); font-size:11px; font-weight:600; }
+.finish-picker-actions button:last-child { color:var(--muted); background:transparent; }
 .manager-form-row { display:grid; grid-template-columns:1.4fr 1fr; gap:9px; margin-bottom:9px; }.manager-card > textarea { margin-bottom:10px; }
 .add-song-card > select { margin-bottom:10px; }
 .manager-primary,.manager-secondary { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; border:0; border-radius:9px; padding:12px 15px; font-size:13px; font-weight:600; }.manager-primary { color:#fff; background:var(--olive); }.manager-secondary { color:var(--olive-dark); background:#edf3e8; }
