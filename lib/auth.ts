@@ -1,28 +1,31 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 const cookieName = "songlight_admin";
-const env = (name: string) => process.env[name];
+// Keep these direct references: Vercel traces them and injects the values into
+// every server function that imports this module (login, session and upload).
+const configuredAdminPassword = process.env.ADMIN_PASSWORD;
+const configuredPasswordHash = process.env.ADMIN_PASSWORD_HASH || "";
 // Use the configured portal credential as the session signing source. This
 // keeps independently deployed route handlers consistent even when a legacy
 // SESSION_SECRET value is scoped differently in a hosting dashboard.
 function sessionSecret() {
-  return env("ADMIN_PASSWORD")?.trim() || env("SESSION_SECRET") || "development-only-change-me";
+  return configuredAdminPassword?.trim() || "development-only-change-me";
 }
 export function hasPasswordConfiguration() {
-  const plaintext = env("ADMIN_PASSWORD")?.trim();
+  const plaintext = configuredAdminPassword?.trim();
   if (plaintext) return true;
-  const [scheme, salt, digest] = (env("ADMIN_PASSWORD_HASH") || "").split(":");
+  const [scheme, salt, digest] = configuredPasswordHash.split(":");
   return scheme === "scrypt" && Boolean(salt) && Boolean(digest);
 }
 export function verifyPassword(password: string) {
   // Trim environment-only whitespace: it is common when a value is pasted into
   // a dashboard. The password typed in the form remains exact.
-  const configured = env("ADMIN_PASSWORD")?.trim();
+  const configured = configuredAdminPassword?.trim();
   if (configured) {
     const expected = Buffer.from(configured);
     const actual = Buffer.from(password);
     return expected.length === actual.length && timingSafeEqual(expected, actual);
   }
-  const [scheme, salt, digest] = (env("ADMIN_PASSWORD_HASH") || "").split(":");
+  const [scheme, salt, digest] = configuredPasswordHash.split(":");
   if (scheme !== "scrypt" || !salt || !digest) return false;
   const expected = Buffer.from(digest, "hex");
   const actual = scryptSync(password, salt, expected.length);
