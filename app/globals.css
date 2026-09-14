@@ -938,14 +938,16 @@ svg {
   display: inline-flex;
   align-items: center;
   min-height: 30px;
-  padding: 5px 12px;
+  padding: 8px 16px;
   border-radius: 7px;
-  background: #fbf5e8;
+  background: linear-gradient(135deg, #fff8e8, #fbf1dc);
   font: 700 11px "DM Sans", sans-serif;
   text-transform: uppercase;
   letter-spacing: 1.4px;
   color: var(--gold);
-  margin: 0 0 22px;
+  margin: 0 0 26px;
+  border-left: 3px solid var(--gold);
+  box-shadow: 0 5px 16px rgba(165, 129, 67, 0.1);
 }
 .lyric-columns {
   display: grid;

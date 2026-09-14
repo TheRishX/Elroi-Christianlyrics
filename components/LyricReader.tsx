@@ -5,31 +5,100 @@ import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
 type DisplaySection = { label: string; original: string; roman?: string };
 
+const HEADING =
+  /(?:^|\n)\s*(Verse|Chorus|Pre[ -]?Chorus|Post[ -]?Chorus|Bridge|Ending|Refrain|Hook|Intro|Outro|Interlude|Instrumental|Breakdown|Solo|Vamp|Tag|Coda|Stanza|वर्स|वार्स|कोरस|प्री[ -]?कोरस|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो|अंतरा|मुखड़ा)(?:\s+(\d+|one|two|three|four|five|six|seven|eight|nine|ten))?\s*:?\s*(?:\n|$)/giu;
+
+function normalizeLabel(raw: string, number?: string) {
+  const value = raw.toLocaleLowerCase();
+  const label = /pre[ -]?chorus|प्री[ -]?कोरस/.test(value)
+    ? "Pre-Chorus"
+    : /post[ -]?chorus/.test(value)
+      ? "Post-Chorus"
+      : /verse|वर्स|वार्स|अंतरा/.test(value)
+        ? "Verse"
+        : /chorus|कोरस|मुखड़ा/.test(value)
+          ? "Chorus"
+          : /bridge|ब्रिज/.test(value)
+            ? "Bridge"
+            : /refrain|रिफ्रेन/.test(value)
+              ? "Refrain"
+              : /hook/.test(value)
+                ? "Hook"
+                : /intro|इंट्रो/.test(value)
+                  ? "Intro"
+                  : /outro|आउट्रो/.test(value)
+                    ? "Outro"
+                    : /interlude/.test(value)
+                      ? "Interlude"
+                      : /instrumental/.test(value)
+                        ? "Instrumental"
+                        : /breakdown/.test(value)
+                          ? "Breakdown"
+                          : /solo/.test(value)
+                            ? "Solo"
+                            : /vamp/.test(value)
+                              ? "Vamp"
+                              : /tag/.test(value)
+                                ? "Tag"
+                                : /coda/.test(value)
+                                  ? "Coda"
+                                  : /stanza/.test(value)
+                                    ? "Stanza"
+                                    : "Ending";
+  const numbers: Record<string, string> = {
+    one: "1",
+    two: "2",
+    three: "3",
+    four: "4",
+    five: "5",
+    six: "6",
+    seven: "7",
+    eight: "8",
+    nine: "9",
+    ten: "10",
+  };
+  return `${label}${number ? ` ${numbers[number.toLowerCase()] || number}` : ""}`;
+}
+
 function cleanLegacy(value: string, roman = false) {
   const cleaned = value
     .replace(/\\r\\n|\\n|\\r/g, "\n")
-    .replace(roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g, "\n");
+    .replace(
+      roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g,
+      "\n",
+    );
   return roman ? cleaned : cleaned.replace(/[?�]?n(?=[ \t]*(?:\n|$))/g, "");
 }
 
 function splitSections(value: string, fallback: string): DisplaySection[] {
   const text = cleanLegacy(value).trim();
   if (!text) return [];
-  const heading = /(?:^|\n)\s*(Verse|Chorus|Bridge|Ending|Refrain|Intro|Outro|वर्स|वार्स|कोरस|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो)(?:\s+(\d+))?\s*:?\s*(?:\n|$)/giu;
-  const matches = [...text.matchAll(heading)];
-  const label = (raw: string, number?: string) => {
-    const key = raw.toLocaleLowerCase();
-    const english = /verse|वर्स|वार्स/.test(key) ? "Verse" : /chorus|कोरस/.test(key) ? "Chorus" : /bridge|ब्रिज/.test(key) ? "Bridge" : /ending|एंडिंग/.test(key) ? "Ending" : /refrain|रिफ्रेन/.test(key) ? "Refrain" : /intro|इंट्रो/.test(key) ? "Intro" : "Outro";
-    return `${english}${number ? ` ${number}` : ""}`;
-  };
-  if (!matches.length) return [{ label: fallback, original: text }];
+  HEADING.lastIndex = 0;
+  const matches = [...text.matchAll(HEADING)];
+  const fallbackLabel =
+    /(?:verse|chorus|bridge|ending|refrain|hook|intro|outro|interlude|instrumental|breakdown|solo|vamp|tag|coda|stanza|वर्स|वार्स|कोरस|प्री|ब्रिज|एंडिंग|रिफ्रेन|इंट्रो|आउट्रो|अंतरा|मुखड़ा)/iu.test(
+      fallback,
+    )
+      ? normalizeLabel(fallback)
+      : fallback;
+  if (!matches.length) return [{ label: fallbackLabel, original: text }];
   const result: DisplaySection[] = [];
   const firstIndex = matches[0].index ?? 0;
-  if (firstIndex > 0) result.push({ label: fallback, original: text.slice(0, firstIndex).trim() });
+  if (firstIndex > 0)
+    result.push({
+      label: fallbackLabel,
+      original: text.slice(0, firstIndex).trim(),
+    });
   matches.forEach((match, index) => {
     const start = (match.index ?? 0) + match[0].length;
-    const end = index + 1 < matches.length ? matches[index + 1].index ?? text.length : text.length;
-    result.push({ label: label(match[1], match[2]), original: text.slice(start, end).trim() });
+    const end =
+      index + 1 < matches.length
+        ? (matches[index + 1].index ?? text.length)
+        : text.length;
+    result.push({
+      label: normalizeLabel(match[1], match[2]),
+      original: text.slice(start, end).trim(),
+    });
   });
   return result.filter((section) => section.original);
 }
@@ -39,14 +108,22 @@ function getDisplaySections(song: Song): DisplaySection[] {
   const roman: DisplaySection[] = [];
   song.lyrics.forEach((section) => {
     original.push(...splitSections(section.original, section.label));
-    if (section.roman) roman.push(...splitSections(cleanLegacy(section.roman, true), section.label));
+    if (section.roman)
+      roman.push(
+        ...splitSections(cleanLegacy(section.roman, true), section.label),
+      );
   });
-  return original.map((section, index) => ({ ...section, roman: roman[index]?.original || song.lyrics[index]?.roman || "" }));
+  return original.map((section, index) => ({
+    ...section,
+    roman: roman[index]?.original || song.lyrics[index]?.roman || "",
+  }));
 }
 
 export function LyricReader({ song }: { song: Song }) {
   const displaySections = getDisplaySections(song);
-  const hasRoman = song.language !== "english" && displaySections.some((section) => section.roman);
+  const hasRoman =
+    song.language !== "english" &&
+    displaySections.some((section) => section.roman);
   const [mode, setMode] = useState<Mode>("original");
   const [size, setSize] = useState(1);
   const [notice, setNotice] = useState("");
@@ -95,7 +172,13 @@ export function LyricReader({ song }: { song: Song }) {
           <div className="mode-toggle" role="group" aria-label="Lyric display">
             {(
               [
-                { id: "original", label: song.language === "hindi" ? "Hindi Lyrics" : "Nepali Lyrics" },
+                {
+                  id: "original",
+                  label:
+                    song.language === "hindi"
+                      ? "Hindi Lyrics"
+                      : "Nepali Lyrics",
+                },
                 { id: "roman", label: "English Lyrics" },
                 { id: "side", label: "Both" },
               ] as const
