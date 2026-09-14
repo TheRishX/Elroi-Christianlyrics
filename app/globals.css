@@ -2,6 +2,35 @@
 .saved-grid {
   margin-top: 30px;
 }
+.song-manager { padding-top: 44px; padding-bottom: 74px; }
+.manager-hero { display:flex; justify-content:space-between; align-items:end; gap:32px; padding:18px 0 34px; }
+.manager-hero h1 { margin:14px 0 10px; font-size:clamp(38px,5vw,64px); font-weight:500; letter-spacing:-2.8px; line-height:1.05; }
+.manager-hero p { margin:0; color:var(--muted); max-width:520px; font-size:16px; }
+.manager-hero-icon { width:100px; height:100px; display:grid; place-items:center; color:var(--olive); background:#eef3e8; border:1px solid #dce7d5; border-radius:28px; }
+.manager-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:14px; margin-bottom:36px; }
+.manager-stats > div { padding:20px 22px; border:1px solid var(--line); border-radius:16px; background:var(--soft); }
+.manager-stats span,.manager-stats small { display:block; color:var(--muted); font-size:12px; }
+.manager-stats strong { display:block; color:var(--olive-dark); font-size:34px; font-weight:500; margin:4px 0; }
+.manager-stats .attention { border-color:#e7d6ad; background:#fffaf0; }
+.manager-toolbar { display:flex; justify-content:space-between; align-items:center; gap:18px; margin-bottom:18px; }
+.manager-tabs { display:flex; gap:5px; padding:4px; background:#edf1e8; border-radius:12px; }
+.manager-tabs button { display:flex; align-items:center; gap:7px; border:0; border-radius:9px; padding:10px 15px; background:transparent; color:var(--muted); font-size:13px; }
+.manager-tabs button.active { color:var(--olive-dark); background:#fff; box-shadow:0 2px 8px #26362712; }
+.manager-search { display:flex; align-items:center; gap:9px; min-width:230px; padding:10px 13px; border:1px solid var(--line); border-radius:10px; color:var(--muted); }
+.manager-search input { width:100%; border:0; outline:0; font-size:13px; background:transparent; }
+.manager-message { display:flex; align-items:center; gap:9px; margin:0 0 18px; padding:12px 14px; border-radius:11px; font-size:13px; }
+.manager-message.warning { color:#795b20; background:#fff8e9; border:1px solid #eeddb5; }.manager-message.success { color:var(--olive-dark); background:#edf5e9; border:1px solid #d7e6ce; }.manager-message button { margin-left:auto; border:0; background:transparent; color:inherit; font-size:20px; }
+.manager-add-grid { display:grid; grid-template-columns:1fr 1fr; gap:18px; margin-bottom:46px; }
+.manager-card { padding:25px; border:1px solid var(--line); border-radius:18px; background:#fff; box-shadow:0 10px 30px #26362709; }
+.card-kicker { display:flex; align-items:center; gap:7px; color:var(--olive); font-size:11px; font-weight:700; letter-spacing:1.2px; text-transform:uppercase; }
+.manager-card h2 { margin:12px 0 7px; font-size:22px; font-weight:500; letter-spacing:-.7px; }.manager-card p { margin:0 0 16px; color:var(--muted); font-size:13px; }
+.manager-card input,.manager-card select,.manager-card textarea { width:100%; border:1px solid #dfe6d9; border-radius:9px; padding:11px 12px; background:#fbfcfa; color:var(--ink); font-size:13px; }.manager-card textarea { resize:vertical; line-height:1.55; }
+.manager-form-row { display:grid; grid-template-columns:1.4fr 1fr; gap:9px; margin-bottom:9px; }.manager-card > textarea { margin-bottom:10px; }
+.manager-primary,.manager-secondary { display:flex; align-items:center; justify-content:center; gap:8px; width:100%; border:0; border-radius:9px; padding:12px 15px; font-size:13px; font-weight:600; }.manager-primary { color:#fff; background:var(--olive); }.manager-secondary { color:var(--olive-dark); background:#edf3e8; }
+.manager-list-section { margin-top:8px; }.manager-section-head { display:flex; justify-content:space-between; align-items:end; gap:20px; margin-bottom:15px; }.manager-section-head h2 { margin:10px 0 0; font-size:25px; font-weight:500; letter-spacing:-.8px; }.manager-section-head h2 span { color:var(--muted); font-size:14px; }.manager-hint { color:var(--muted); font-size:12px; }
+.task-list,.uploaded-list { border-top:1px solid var(--line); }.task-row,.uploaded-row { display:flex; align-items:center; gap:14px; min-height:76px; padding:12px 4px; border-bottom:1px solid var(--line); }.task-priority { width:4px; align-self:stretch; border-radius:4px; background:#b9c3b1; }.task-priority.high { background:#bb765c; }.task-priority.low { background:#d6c185; }.task-main { flex:1; min-width:0; }.task-title-input { width:100%; border:0; padding:0; background:transparent; color:var(--ink); font-size:15px; font-weight:600; }.task-meta { display:flex; align-items:center; gap:12px; margin-top:6px; color:var(--muted); font-size:11px; }.task-meta span { display:flex; align-items:center; gap:4px; }.task-language { color:var(--olive); text-transform:capitalize; }.task-status { border:1px solid var(--line); border-radius:8px; padding:8px 9px; color:var(--muted); background:#fff; font-size:11px; }.task-status.ready { color:var(--olive-dark); background:#edf5e9; }.task-delete { border:0; background:transparent; color:#a8aea4; padding:8px; }.task-delete:hover { color:#9a5c49; }
+.manager-empty { display:grid; place-items:center; padding:58px 20px; border:1px dashed #d8e1d1; border-radius:14px; color:var(--muted); text-align:center; }.manager-empty svg { color:var(--olive); }.manager-empty h3 { margin:12px 0 5px; color:var(--ink); font-size:17px; font-weight:500; }.manager-empty p { margin:0; font-size:13px; }
+.uploaded-row { color:inherit; text-decoration:none; }.uploaded-icon { display:grid; place-items:center; width:36px; height:36px; border-radius:10px; color:var(--olive); background:#edf3e8; }.uploaded-row > div:nth-child(2) { flex:1; }.uploaded-row strong,.uploaded-row span { display:block; }.uploaded-row strong { font-size:14px; }.uploaded-row span,.uploaded-row time { color:var(--muted); font-size:12px; }.uploaded-row time { font-variant-numeric:tabular-nums; }
 .empty-icon {
   display: inline-grid;
   place-items: center;
@@ -1109,7 +1138,7 @@ svg {
     font-size: 10px;
     font-weight: 500;
     color: #8a9085;
-    width: 25%;
+    width: 20%;
     min-height: 53px;
   }
   .nav-icon {
@@ -1411,6 +1440,27 @@ svg {
     scroll-behavior: auto !important;
     animation: none !important;
   }
+}
+
+@media (max-width: 700px) {
+  .song-manager { padding-top: 24px; }
+  .manager-hero { align-items: flex-start; padding-bottom: 24px; }
+  .manager-hero h1 { font-size: 40px; letter-spacing: -1.8px; }
+  .manager-hero p { font-size: 14px; }
+  .manager-hero-icon { display: none; }
+  .manager-stats { gap: 8px; margin-bottom: 24px; }
+  .manager-stats > div { padding: 13px 10px; }
+  .manager-stats strong { font-size: 26px; }
+  .manager-stats small { font-size: 9px; }
+  .manager-toolbar { align-items: stretch; flex-direction: column; gap: 10px; }
+  .manager-tabs button { flex: 1; justify-content: center; }
+  .manager-search { min-width: 0; }
+  .manager-add-grid { grid-template-columns: 1fr; margin-bottom: 32px; }
+  .manager-card { padding: 19px; }
+  .manager-section-head { align-items: flex-start; flex-direction: column; gap: 7px; }
+  .task-row { gap: 8px; }
+  .task-status { max-width: 105px; }
+  .task-meta { flex-wrap: wrap; gap: 6px 10px; }
 }
 
 /* Centered search-first Elroi Tunes home experience */
