@@ -1,22 +1,23 @@
 import { createHmac, randomBytes, scryptSync, timingSafeEqual } from "crypto";
 const cookieName = "songlight_admin";
-const secret = process.env.SESSION_SECRET || "development-only-change-me";
+const env = (name: string) => process.env[name];
+const secret = env("SESSION_SECRET") || "development-only-change-me";
 export function hasPasswordConfiguration() {
-  const plaintext = process.env.ADMIN_PASSWORD?.trim();
+  const plaintext = env("ADMIN_PASSWORD")?.trim();
   if (plaintext) return true;
-  const [scheme, salt, digest] = (process.env.ADMIN_PASSWORD_HASH || "").split(":");
+  const [scheme, salt, digest] = (env("ADMIN_PASSWORD_HASH") || "").split(":");
   return scheme === "scrypt" && Boolean(salt) && Boolean(digest);
 }
 export function verifyPassword(password: string) {
   // Trim environment-only whitespace: it is common when a value is pasted into
   // a dashboard. The password typed in the form remains exact.
-  const configured = process.env.ADMIN_PASSWORD?.trim();
+  const configured = env("ADMIN_PASSWORD")?.trim();
   if (configured) {
     const expected = Buffer.from(configured);
     const actual = Buffer.from(password);
     return expected.length === actual.length && timingSafeEqual(expected, actual);
   }
-  const [scheme, salt, digest] = (process.env.ADMIN_PASSWORD_HASH || "").split(":");
+  const [scheme, salt, digest] = (env("ADMIN_PASSWORD_HASH") || "").split(":");
   if (scheme !== "scrypt" || !salt || !digest) return false;
   const expected = Buffer.from(digest, "hex");
   const actual = scryptSync(password, salt, expected.length);
