@@ -62,12 +62,18 @@ function normalizeLabel(raw: string, number?: string) {
 
 function cleanLegacy(value: string, roman = false) {
   const cleaned = value
+    .normalize("NFC")
+    .replace(/\uFFFD/g, "")
     .replace(/\\r\\n|\\n|\\r/g, "\n")
     .replace(
       roman ? /[?�]?n(?=[A-Z])/g : /[?�]?n(?=[\u0900-\u097fA-Z])/g,
       "\n",
     );
-  return roman ? cleaned : cleaned.replace(/[?�]?n(?=[ \t]*(?:\n|$))/g, "");
+  if (roman) return cleaned;
+  return cleaned
+    .replace(/[?�]?n(?=[ \t]*(?:\n|$))/g, "")
+    .replace(/(^|\n|[ \t])([?]+|[·•⋮…⁙⁖∴]+)(?=[\u0900-\u097f])/g, "$1")
+    .normalize("NFC");
 }
 
 function splitSections(value: string, fallback: string): DisplaySection[] {

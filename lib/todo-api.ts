@@ -2,8 +2,14 @@ const wordpressBase = process.env.WORDPRESS_API_URL;
 const token = process.env.WORDPRESS_API_TOKEN;
 
 function endpoint(path: string) {
-  if (!wordpressBase || !token)
-    throw new Error("WordPress task storage is not configured.");
+  if (!wordpressBase)
+    throw new Error(
+      "WordPress task storage is not configured: WORDPRESS_API_URL is missing.",
+    );
+  if (!token)
+    throw new Error(
+      "WordPress task storage is not configured: WORDPRESS_API_TOKEN is missing. Add the same token saved in WordPress → Settings → Elroi Tunes.",
+    );
   return `${wordpressBase.replace(/\/$/, "")}${path}`;
 }
 
