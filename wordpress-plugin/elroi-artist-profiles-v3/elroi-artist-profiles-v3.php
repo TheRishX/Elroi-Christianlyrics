@@ -36,6 +36,11 @@ final class Elroi_Artist_Profiles_V3 {
       'callback' => [$this, 'create_artist'],
       'permission_callback' => [$this, 'private_access'],
     ]);
+    register_rest_route('lyrics/v1', '/artists', [
+      'methods' => WP_REST_Server::DELETABLE,
+      'callback' => [$this, 'delete_artist_by_name'],
+      'permission_callback' => [$this, 'private_access'],
+    ]);
     register_rest_route('lyrics/v1', '/artists/(?P<id>\d+)', [
       'methods' => WP_REST_Server::EDITABLE,
       'callback' => [$this, 'update_artist'],
@@ -106,6 +111,32 @@ final class Elroi_Artist_Profiles_V3 {
     if (!$post || $post->post_type !== $this->post_type) return new WP_Error('not_found', 'Artist profile not found.', ['status' => 404]);
     wp_delete_post($post->ID, true);
     return rest_ensure_response(['ok' => true]);
+  }
+
+  public function delete_artist_by_name($request) {
+    $name = sanitize_text_field($request->get_param('name') ?? '');
+    if (!$name) return new WP_Error('missing_artist', 'Artist name is required.', ['status' => 400]);
+    $key = strtolower(trim($name));
+    $posts = get_posts(['post_type' => 'song', 'post_status' => ['publish', 'draft', 'private'], 'posts_per_page' => -1]);
+    $updated = 0;
+    foreach ($posts as $song) {
+      $artists = json_decode(get_post_meta($song->ID, 'artists', true) ?: '[]', true);
+      if (!is_array($artists) || !$artists) $artists = array_filter([get_post_meta($song->ID, 'artist', true)]);
+      $remaining = array_values(array_filter($artists, function ($artist) use ($key) { return strtolower(trim((string) $artist)) !== $key; }));
+      $worship_team = get_post_meta($song->ID, 'worship_team', true);
+      $artist = get_post_meta($song->ID, 'artist', true);
+      $changed = count($remaining) !== count($artists) || strtolower(trim((string) $worship_team)) === $key || strtolower(trim((string) $artist)) === $key;
+      if (!$changed) continue;
+      update_post_meta($song->ID, 'artists', wp_json_encode($remaining, JSON_UNESCAPED_UNICODE));
+      update_post_meta($song->ID, 'artist_ids', '[]');
+      update_post_meta($song->ID, 'artist', $remaining[0] ?? '');
+      if (strtolower(trim((string) $worship_team)) === $key) update_post_meta($song->ID, 'worship_team', '');
+      if (taxonomy_exists('artist')) { $terms = wp_get_object_terms($song->ID, 'artist', ['fields' => 'names']); if (!is_wp_error($terms)) wp_set_object_terms($song->ID, array_values(array_filter($terms, function ($term) use ($key) { return strtolower(trim((string) $term)) !== $key; })), 'artist', false); }
+      $updated++;
+    }
+    $profiles = get_posts(['post_type' => $this->post_type, 'post_status' => 'any', 'posts_per_page' => -1, 'title' => $name]);
+    foreach ($profiles as $profile) wp_delete_post($profile->ID, true);
+    return rest_ensure_response(['ok' => true, 'name' => $name, 'songsUpdated' => $updated]);
   }
 
   public function upload_artist_image($request) {
