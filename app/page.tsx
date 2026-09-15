@@ -3,13 +3,12 @@ import { SearchBox } from "@/components/SearchBox";
 import { SongCard } from "@/components/SongCard";
 import { LanguageCards } from "@/components/LanguageCards";
 import { Icon } from "@/components/Icon";
-import { getSongs } from "@/lib/api";
+import { getArtists, getSongs } from "@/lib/api";
 import { AdSlot } from "@/components/AdSlot";
-import { DesktopMenu } from "@/components/Header";
 import { HeroFaithMark } from "@/components/HeroFaithMark";
 import { ArtistDirectory } from "@/components/ArtistDirectory";
 export default async function Home() {
-  const songs = await getSongs();
+  const [songs, artists] = await Promise.all([getSongs(), getArtists()]);
   return (
     <div className="page">
       <section className="hero hero-search" id="search-hero">
@@ -27,7 +26,6 @@ export default async function Home() {
         </div>
       </section>
       <section className="section language-section home-centered-section">
-        <DesktopMenu />
         <div className="mobile-language-heading">
           <span className="eyebrow">YOUR LANGUAGE. YOUR SONG.</span>
           <h2>Worship in your own words.</h2>
@@ -51,7 +49,7 @@ export default async function Home() {
           Explore all lyrics <Icon name="arrow" size={17} />
         </Link>
       </section>
-      <ArtistDirectory songs={songs} />
+      <ArtistDirectory songs={songs} artists={artists} />
     </div>
   );
 }

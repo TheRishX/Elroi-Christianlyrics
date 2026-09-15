@@ -3,6 +3,7 @@ import { normalizeLyricText } from "./lyrics";
 
 export type UploadSong = Omit<Song, "id" | "updatedAt"> & {
   status?: "draft" | "publish";
+  artistId?: number;
 };
 
 const languages = ["hindi", "nepali", "english"] as const;

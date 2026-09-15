@@ -18,6 +18,12 @@ final class Elroi_Tunes_Publisher {
     register_rest_route('elroi-publisher/v1', '/songs', [
       'methods' => 'POST', 'callback' => [$this, 'publish_song'], 'permission_callback' => [$this, 'permission'],
     ]);
+    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)', [
+      'methods' => 'PATCH', 'callback' => [$this, 'publish_song'], 'permission_callback' => [$this, 'permission'],
+    ]);
+    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)', [
+      'methods' => 'DELETE', 'callback' => [$this, 'delete_song'], 'permission_callback' => [$this, 'permission'],
+    ]);
   }
   public function permission($request) {
     if (!$this->token) return new WP_Error('publisher_not_configured', 'Publisher token is not configured.', ['status' => 503]);
@@ -50,12 +56,14 @@ final class Elroi_Tunes_Publisher {
     $lyrics = $this->lyrics($body['lyrics'] ?? []);
     if (!$title || !$artist || !$lyrics || !in_array($language, ['hindi', 'nepali', 'english'], true)) return new WP_Error('invalid_song', 'Title, artist, language, and lyrics are required.', ['status' => 400]);
     $slug = sanitize_title($body['slug'] ?? $title);
-    $existing = get_page_by_path($slug, OBJECT, 'song');
+    $existing = !empty($body['id']) ? get_post(absint($body['id'])) : get_page_by_path($slug, OBJECT, 'song');
+    if ($existing && $existing->post_type !== 'song') $existing = null;
     $post = ['post_type' => 'song', 'post_title' => $title, 'post_name' => $slug, 'post_status' => ($body['status'] ?? 'publish') === 'draft' ? 'draft' : 'publish', 'post_content' => $this->content($lyrics)];
     if ($existing) { $post['ID'] = $existing->ID; $id = wp_update_post($post, true); } else { $id = wp_insert_post($post, true); }
     if (is_wp_error($id)) return $id;
     $meta = ['roman_title'=>'romanTitle','artist'=>'artist','worship_team'=>'worshipTeam','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','release_year'=>'releaseYear','song_key'=>'songKey','tempo'=>'tempo','youtube_url'=>'youtubeUrl','audio_url'=>'audioUrl','excerpt'=>'excerpt','last_reviewed_at'=>'lastReviewedAt'];
     foreach ($meta as $key => $field) update_post_meta($id, $key, $this->text($body[$field] ?? ''));
+    update_post_meta($id, 'artist_id', absint($body['artistId'] ?? 0));
     update_post_meta($id, 'language', $language); update_post_meta($id, 'lyrics', wp_json_encode($lyrics, JSON_UNESCAPED_UNICODE));
     $alternate_titles = $this->list($body['alternateTitles'] ?? []); if (!$alternate_titles) $alternate_titles = [$title];
     $roman_alternate_titles = $this->list($body['romanAlternateTitles'] ?? []); if (!$roman_alternate_titles) $roman_alternate_titles = array_filter([$body['romanTitle'] ?? '']);
@@ -67,6 +75,7 @@ final class Elroi_Tunes_Publisher {
     $post_object = get_post($id); $this->revalidate($post_object);
     return new WP_REST_Response(['id'=>(int)$id, 'slug'=>$post_object->post_name, 'status'=>$post_object->post_status, 'url'=>get_permalink($id)], $existing ? 200 : 201);
   }
+  public function delete_song($request) { $post = get_post((int) $request['id']); if (!$post || $post->post_type !== 'song') return new WP_Error('not_found', 'Song not found.', ['status' => 404]); wp_delete_post($post->ID, true); return rest_ensure_response(['ok' => true, 'id' => (int) $post->ID]); }
   private function content($lyrics) { $html = ''; foreach ($lyrics as $section) $html .= '<h3>' . esc_html($section['label']) . '</h3><p>' . nl2br(esc_html($section['original'])) . '</p>'; return $html; }
   private function revalidate($post) {
     $url = getenv('VERCEL_REVALIDATE_URL') ?: getenv('SONGLIGHT_REVALIDATE_URL'); $secret = getenv('WORDPRESS_WEBHOOK_SECRET') ?: getenv('SONGLIGHT_REVALIDATE_SECRET');

@@ -6,20 +6,13 @@ export default async function Browse() {
   const songs = await getSongs();
   return (
     <div className="page">
-      <section className="language-banner">
-        <span className="eyebrow">ALL CHRISTIAN LYRICS</span>
-        <div className="elroi-wordmark page-wordmark" aria-label="Elroi Tunes">
-          <span className="word-elroi">Elroi</span>
-          <span className="word-tunes">Tunes</span>
-        </div>
-        <p>Find Hindi, Nepali, and English worship lyrics in one place.</p>
-      </section>
+      <section className="lyrics-page-intro"><h1>All lyrics</h1></section>
       <section className="section">
         <LanguageCards />
       </section>
       <section className="section">
         <div className="section-head">
-          <h2>All lyrics</h2>
+          <h2>Choose a language</h2>
         </div>
         <div className="song-grid">
           {songs.map((s) => (

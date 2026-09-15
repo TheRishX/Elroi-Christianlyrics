@@ -14,6 +14,8 @@ export function DesktopMenu() {
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
+      : href === "/artists"
+        ? path === "/artists" || path.startsWith("/artists/")
       : path === href;
   return (
     <nav
@@ -42,7 +44,6 @@ export function Header() {
     document.body.classList.toggle("upload-mode", path === "/upload");
     return () => document.body.classList.remove("upload-mode");
   }, [path]);
-  const isLyricsPage = /^\/(hindi|nepali|english)\/[^/]+$/.test(path);
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
@@ -54,6 +55,7 @@ export function Header() {
       </a>
       {path !== "/" && (
         <nav className="utility-nav" aria-label="Page navigation">
+          <Link className="utility-brand" href="/" aria-label="Elroi Tunes home">Elroi <em>Tunes</em></Link>
           <button
             type="button"
             className="utility-back"
@@ -67,7 +69,7 @@ export function Header() {
           </button>
         </nav>
       )}
-      {path !== "/" && !isLyricsPage && <DesktopMenu />}
+      {path !== "/upload" && <DesktopMenu />}
       <nav className="bottom-nav" aria-label="App navigation">
         {items.map((i) => (
           <Link

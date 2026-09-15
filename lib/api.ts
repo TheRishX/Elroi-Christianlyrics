@@ -1,5 +1,5 @@
 import { songs as mockSongs } from "./mock-data";
-import { Language, SearchResult, Song, SongSuggestion } from "./types";
+import { AdSettings, Artist, Language, SearchResult, Song, SongSuggestion } from "./types";
 import { normalizeLyricText } from "./lyrics";
 const base = process.env.WORDPRESS_API_URL;
 function listFrom(data: unknown): Song[] {
@@ -10,6 +10,11 @@ function listFrom(data: unknown): Song[] {
     Array.isArray((data as { items?: unknown }).items)
   )
     return (data as { items: Song[] }).items;
+  return [];
+}
+function artistListFrom(data: unknown): Artist[] {
+  if (Array.isArray(data)) return data as Artist[];
+  if (data && typeof data === "object" && Array.isArray((data as { items?: unknown }).items)) return (data as { items: Artist[] }).items;
   return [];
 }
 function repairDevanagari(value: string, roman = "") {
@@ -49,6 +54,26 @@ export async function getSongs(language?: Language, fresh = false): Promise<Song
       ? mockSongs.filter((s) => s.language === language)
       : mockSongs;
   }
+}
+export async function getArtists(fresh = false): Promise<Artist[]> {
+  if (!base) {
+    return Array.from(new Map(mockSongs.flatMap((song) => [song.artist, song.worshipTeam || ""]).filter(Boolean).map((name) => [name.toLowerCase(), { id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), name }] as const)).values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+  try {
+    const res = await fetch(`${base}/artists`, fresh ? { cache: "no-store" } : { next: { revalidate: 300, tags: ["artists"] } });
+    if (!res.ok) throw new Error("WordPress unavailable");
+    return artistListFrom(await res.json());
+  } catch {
+    return Array.from(new Map(mockSongs.flatMap((song) => [song.artist, song.worshipTeam || ""]).filter(Boolean).map((name) => [name.toLowerCase(), { id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), name }] as const)).values()).sort((a, b) => a.name.localeCompare(b.name));
+  }
+}
+export async function getAdSettings(): Promise<AdSettings | null> {
+  if (!base) return null;
+  try {
+    const response = await fetch(`${base}/settings/ads`, { next: { revalidate: 60, tags: ["ads"] } });
+    if (!response.ok) return null;
+    return await response.json();
+  } catch { return null; }
 }
 export async function getSong(slug: string): Promise<Song | undefined> {
   if (!base) return mockSongs.find((s) => s.slug === slug);
