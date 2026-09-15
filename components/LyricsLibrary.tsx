@@ -2,7 +2,7 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Song } from "@/lib/types";
-import { SongCard } from "@/components/SongCard";
+import { InfiniteSongGrid } from "@/components/InfiniteSongGrid";
 
 function searchableText(song: Song) {
   return [
@@ -48,11 +48,7 @@ export function LyricsLibrary({
           aria-label={placeholder}
         />
       </label>
-      <div className="song-grid">
-        {visibleSongs.map((song) => (
-          <SongCard key={song.id} song={song} />
-        ))}
-      </div>
+      <InfiniteSongGrid songs={visibleSongs} />
       {!visibleSongs.length && (
         <p className="empty-artists">No songs or lyrics match your search.</p>
       )}

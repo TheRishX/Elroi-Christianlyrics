@@ -1,7 +1,7 @@
 "use client";
 import Link from "next/link";
 import { ArrowUpRight, Search } from "lucide-react";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Artist, Song } from "@/lib/types";
 import { artistInitials, artistSlug } from "@/lib/artists";
 
@@ -38,6 +38,8 @@ export function ArtistDirectory({
   variant?: "rail" | "grid";
 }) {
   const [query, setQuery] = useState("");
+  const [visibleCount, setVisibleCount] = useState(variant === "grid" ? 12 : 6);
+  const sentinelRef = useRef<HTMLDivElement>(null);
   const names = artistNames(songs, artists);
   const visibleNames = useMemo(
     () =>
@@ -46,6 +48,28 @@ export function ArtistDirectory({
       ),
     [names, query],
   );
+  useEffect(() => {
+    setVisibleCount(variant === "grid" ? 12 : 6);
+  }, [query, variant]);
+  useEffect(() => {
+    const sentinel = sentinelRef.current;
+    if (!sentinel || visibleCount >= visibleNames.length) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setVisibleCount((count) =>
+            Math.min(
+              count + (variant === "grid" ? 12 : 6),
+              visibleNames.length,
+            ),
+          );
+        }
+      },
+      { rootMargin: "480px 0px" },
+    );
+    observer.observe(sentinel);
+    return () => observer.disconnect();
+  }, [variant, visibleCount, visibleNames.length]);
   const profiles = new Map(
     artists.map((artist) => [artist.name.toLowerCase(), artist]),
   );
@@ -74,7 +98,7 @@ export function ArtistDirectory({
         </label>
       )}
       <div className="artist-grid">
-        {visibleNames.map((name) => {
+        {visibleNames.slice(0, visibleCount).map((name) => {
           const profile = profiles.get(name.toLowerCase());
           const artistSongs = songs.filter(
             (song) =>
@@ -110,6 +134,16 @@ export function ArtistDirectory({
           );
         })}
       </div>
+      {visibleCount < visibleNames.length && (
+        <div
+          ref={sentinelRef}
+          className="infinite-scroll-sentinel"
+          role="status"
+          aria-label="Loading more artists"
+        >
+          Loading more artists…
+        </div>
+      )}
       {!visibleNames.length && (
         <p className="empty-artists">
           {query

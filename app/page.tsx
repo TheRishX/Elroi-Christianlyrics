@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SearchBox } from "@/components/SearchBox";
-import { SongCard } from "@/components/SongCard";
+import { InfiniteSongGrid } from "@/components/InfiniteSongGrid";
 import { LanguageCards } from "@/components/LanguageCards";
 import { Icon } from "@/components/Icon";
 import { getArtists, getSongs } from "@/lib/api";
@@ -40,11 +40,7 @@ export default async function Home() {
             <h2>A new song for today</h2>
           </div>
         </div>
-        <div className="song-grid">
-          {songs.map((s) => (
-            <SongCard key={s.id} song={s} />
-          ))}
-        </div>
+        <InfiniteSongGrid songs={songs} initialCount={6} />
         <Link className="text-link centered-text-link" href="/search">
           Explore all lyrics <Icon name="arrow" size={17} />
         </Link>
