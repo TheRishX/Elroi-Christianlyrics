@@ -31,7 +31,7 @@ function repairDevanagari(value: string, roman = "") {
 function repairSong(song: Song): Song {
   return { ...song, lyrics: (song.lyrics || []).map(section => ({ ...section, original: repairDevanagari(normalizeLyricText(section.original || ""), normalizeLyricText(section.roman || "")), roman: section.roman ? normalizeLyricText(section.roman) : section.roman })) };
 }
-export async function getSongs(language?: Language): Promise<Song[]> {
+export async function getSongs(language?: Language, fresh = false): Promise<Song[]> {
   if (!base)
     return language
       ? mockSongs.filter((s) => s.language === language)
@@ -39,7 +39,7 @@ export async function getSongs(language?: Language): Promise<Song[]> {
   try {
     const url = new URL(`${base}/songs`);
     if (language) url.searchParams.set("language", language);
-    const res = await fetch(url, {
+    const res = await fetch(url, fresh ? { cache: "no-store" } : {
       next: { revalidate: 300, tags: ["songs"] },
     });
     if (!res.ok) throw new Error("WordPress unavailable");
