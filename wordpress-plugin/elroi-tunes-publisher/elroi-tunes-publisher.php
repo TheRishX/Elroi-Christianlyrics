@@ -54,6 +54,8 @@ final class Elroi_Tunes_Publisher {
     $title = sanitize_text_field($body['title'] ?? '');
     $language = sanitize_key($body['language'] ?? 'english');
     $artist = sanitize_text_field($body['artist'] ?? '');
+    $artists = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($body['artists'] ?? [$artist])))));
+    if (!$artist && $artists) $artist = $artists[0];
     $lyrics = $this->lyrics($body['lyrics'] ?? []);
     if (!$title || !$artist || !$lyrics || !in_array($language, ['hindi', 'nepali', 'english'], true)) return new WP_Error('invalid_song', 'Title, artist, language, and lyrics are required.', ['status' => 400]);
     $slug = sanitize_title($body['slug'] ?? $title);
@@ -63,6 +65,8 @@ final class Elroi_Tunes_Publisher {
     if (is_wp_error($id)) return $id;
     $meta = ['roman_title'=>'romanTitle','artist'=>'artist','worship_team'=>'worshipTeam','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','release_year'=>'releaseYear','song_key'=>'songKey','tempo'=>'tempo','youtube_url'=>'youtubeUrl','audio_url'=>'audioUrl','excerpt'=>'excerpt','last_reviewed_at'=>'lastReviewedAt'];
     foreach ($meta as $key => $field) update_post_meta($id, $key, $this->text($body[$field] ?? ''));
+    update_post_meta($id, 'artist_ids', wp_json_encode(array_values(array_filter(array_map('absint', (array) ($body['artistIds'] ?? []))))));
+    update_post_meta($id, 'artists', wp_json_encode($artists ?: [$artist], JSON_UNESCAPED_UNICODE));
     update_post_meta($id, 'language', $language); update_post_meta($id, 'lyrics', wp_json_encode($lyrics, JSON_UNESCAPED_UNICODE));
     $alternate_titles = $this->list($body['alternateTitles'] ?? []); if (!$alternate_titles) $alternate_titles = [$title];
     $roman_alternate_titles = $this->list($body['romanAlternateTitles'] ?? []); if (!$roman_alternate_titles) $roman_alternate_titles = array_filter([$body['romanTitle'] ?? '']);

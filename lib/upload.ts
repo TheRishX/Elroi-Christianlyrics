@@ -4,6 +4,7 @@ import { normalizeLyricText } from "./lyrics";
 export type UploadSong = Omit<Song, "id" | "updatedAt"> & {
   status?: "draft" | "publish";
   artistId?: number;
+  artistIds?: number[];
 };
 
 const languages = ["hindi", "nepali", "english"] as const;
@@ -27,6 +28,7 @@ export function validateSong(value: unknown): UploadSong {
   const input = (value || {}) as Record<string, unknown>;
   const title = String(input.title || "").trim();
   const artist = String(input.artist || "").trim();
+  const artists = Array.from(new Set((Array.isArray(input.artists) ? input.artists : [artist]).map(String).map((name) => name.trim()).filter(Boolean)));
   const language = input.language;
   const lyrics = cleanLyrics(input.lyrics);
   if (!title) throw new Error("A song title is required.");
@@ -37,6 +39,7 @@ export function validateSong(value: unknown): UploadSong {
     ...input,
     title,
     artist,
+    artists,
     language,
     lyrics,
     slug: String(input.slug || title).trim(),

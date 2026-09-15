@@ -2137,3 +2137,7 @@ body.upload-mode .upload-page { min-height: calc(100vh - 104px); }
   .publish-dock, .publish-actions { align-items: stretch; flex-direction: column; }
   .publish-actions .secondary-button, .publish-actions .publish-button { width: 100%; }
 }
+.artist-selected-list { display:flex; flex-wrap:wrap; gap:.4rem; margin-bottom:.5rem; }
+.artist-selected-chip { display:inline-flex; align-items:center; gap:.35rem; max-width:100%; padding:.35rem .45rem .35rem .7rem; border:1px solid #d5e3cf; border-radius:999px; color:var(--olive-dark); background:#edf5e9; font-size:.78rem; font-weight:600; }
+.artist-selected-chip button { display:grid; place-items:center; width:20px; height:20px; padding:0; border:0; border-radius:50%; color:inherit; background:transparent; cursor:pointer; }
+.artist-selected-chip button:hover { background:#dcebd7; }

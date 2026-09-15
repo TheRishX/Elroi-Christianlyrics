@@ -9,6 +9,8 @@ export type Song = {
   romanAlternateTitles?: string[];
   language: Language;
   artist: string;
+  artists?: string[];
+  artistIds?: number[];
   worshipTeam?: string;
   excerpt?: string;
   lyrics: LyricSection[];
