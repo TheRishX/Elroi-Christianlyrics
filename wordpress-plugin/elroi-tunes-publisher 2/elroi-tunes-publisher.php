@@ -36,6 +36,7 @@ final class Elroi_Tunes_Publisher {
     // Some older portal payloads sent escaped newlines. Decode only those
     // sequences and remove the known trailing `n` artifact after a line end.
     $text = str_replace(["\\r\\n", "\\n", "\\r"], "\n", $text);
+    $text = preg_replace('/(?<=[\x{0900}-\x{097F}])n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
     return preg_replace('/(?<=\))n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
   }
   private function list($value) {

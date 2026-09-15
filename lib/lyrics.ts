@@ -17,6 +17,7 @@ export function normalizeLyricText(value: unknown): string {
     .replace(/n(?=\s*(?:pre-chorus|verse|chorus|bridge|intro|outro|refrain)\b)/giu, "\n")
     .replace(/n(?=[\u0900-\u097F])/gu, "\n")
     .replace(/(?<=[\p{Ll}\p{M}\d)])n(?=[A-Z])/gu, "\n")
+    .replace(/(?<=[\u0900-\u097F])n(?=\s*(?:\n|$))/gu, "")
     .replace(/(?<=\))n(?=\s*(?:\n|$))/gu, "");
 
   return text;
