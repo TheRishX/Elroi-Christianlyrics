@@ -18,10 +18,11 @@ export async function GET() {
   try {
     const response = await fetch(endpoint(), { headers: headers(), cache: "no-store" });
     const data = await response.json().catch(() => ({}));
-    if (response.ok && Array.isArray(data.items)) return NextResponse.json(data, { headers: { "Cache-Control": "no-store" } });
     const songsResponse = await fetch(`${process.env.WORDPRESS_API_URL?.replace(/\/$/, "")}/songs?per_page=100`, { cache: "no-store" });
     const songs = await songsResponse.json().catch(() => ({}));
-    const items = (Array.from(new Map((songs.items || []).flatMap((song: { artist?: string; worshipTeam?: string }) => [song.artist, song.worshipTeam]).filter(Boolean).map((name: string) => [name.toLowerCase(), { id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-"), name, image: "" }] as const)).values()) as { id: number; slug: string; name: string; image: string }[]).sort((a, b) => a.name.localeCompare(b.name));
+    const profiles = Array.isArray(data.items) ? data.items : [];
+    const songArtists = (Array.isArray(songs.items) ? songs.items : []).flatMap((song: { artist?: string; worshipTeam?: string }) => [song.artist, song.worshipTeam]).filter(Boolean).map((name: string) => ({ id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), name, image: "" }));
+    const items = (Array.from(new Map([...songArtists, ...profiles].map((artist: { id: number; slug: string; name: string; image?: string }) => [artist.name.trim().toLowerCase(), { id: artist.id || 0, slug: artist.slug, name: artist.name.trim(), image: artist.image || "" }] as const)).values()) as { id: number; slug: string; name: string; image: string }[]).sort((a, b) => a.name.localeCompare(b.name));
     return NextResponse.json({ items }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "Artists could not be loaded." }, { status: 502 }); }
 }

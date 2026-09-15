@@ -2,6 +2,27 @@
 .saved-grid {
   margin-top: 30px;
 }
+
+.image-picker { position:relative; display:grid; gap:5px; padding:16px 18px; border:1px dashed #b9cdb5; border-radius:13px; background:linear-gradient(135deg,#f8fcf7,#eef5eb); cursor:pointer; transition:.2s ease; }
+.image-picker:hover { border-color:var(--olive); background:#edf6eb; transform:translateY(-1px); }
+.image-picker span { color:var(--ink); font-size:12px; font-weight:700; }
+.image-picker input { position:absolute; inset:0; width:100%; height:100%; opacity:0; cursor:pointer; }
+.image-picker strong { color:var(--olive-dark); font-size:14px; }
+.image-picker small,.crop-hint { color:var(--muted); font-size:11px; }
+.crop-modal { position:fixed; z-index:50; inset:0; display:grid; place-items:center; padding:20px; background:rgba(28,42,30,.48); backdrop-filter:blur(8px); }
+.crop-dialog { width:min(100%,430px); padding:22px; border:1px solid rgba(255,255,255,.7); border-radius:24px; background:#fbfdf9; box-shadow:0 24px 70px rgba(20,35,22,.28); }
+.crop-dialog-head { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:16px; }
+.crop-dialog-head h3 { margin:5px 0 0; color:var(--ink); font-size:22px; font-weight:600; letter-spacing:-.5px; }
+.crop-close { display:grid; place-items:center; width:32px; height:32px; border:0; border-radius:50%; color:var(--muted); background:#edf3e9; font-size:22px; cursor:pointer; }
+.crop-viewport { position:relative; overflow:hidden; width:min(100%,340px); aspect-ratio:1; margin:0 auto 18px; border-radius:50%; background:#dfe9da; box-shadow:0 0 0 8px #f0f6ed,0 12px 30px rgba(40,65,42,.16); cursor:grab; touch-action:none; }
+.crop-viewport:active { cursor:grabbing; }
+.crop-viewport img { position:absolute; top:50%; left:50%; width:100%; height:100%; object-fit:cover; user-select:none; pointer-events:none; }
+.crop-ring { position:absolute; inset:0; border:2px solid rgba(255,255,255,.9); border-radius:50%; pointer-events:none; }
+.crop-zoom { display:grid; gap:7px; color:var(--ink); font-size:12px; font-weight:700; }
+.crop-zoom input { width:100%; accent-color:var(--olive); }
+.crop-hint { margin:10px 0 16px; text-align:center; }
+.crop-actions { display:flex; justify-content:flex-end; gap:9px; }
+@media (max-width:640px) { .crop-dialog { padding:18px; border-radius:20px; } .crop-viewport { width:min(100%,290px); } .crop-actions { flex-direction:column-reverse; } .crop-actions button { width:100%; } }
 .artist-section { padding-top: 18px; }
 .artist-grid { display:flex; gap:28px; overflow-x:auto; padding:2px 2px 14px; scrollbar-width:thin; scrollbar-color:#cad8c1 transparent; }
 .artist-card { display:flex; flex:0 0 150px; flex-direction:column; align-items:flex-start; gap:12px; min-width:0; padding:0; color:var(--ink); text-decoration:none; }

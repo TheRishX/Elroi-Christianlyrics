@@ -11,7 +11,6 @@ final class Christian_Lyrics_API {
   public function __construct() {
     add_action('init', [$this,'register_song']);
     add_action('init', [$this,'register_artist']);
-    add_action('init', [$this,'register_artist']);
     add_action('rest_api_init', [$this,'routes']);
     add_action('add_meta_boxes', [$this,'meta_box']);
     add_action('add_meta_boxes', [$this,'task_meta_box']);
@@ -35,9 +34,6 @@ final class Christian_Lyrics_API {
   public function register_artist() {
     register_post_type('artist', ['label'=>'Artists & Worship Teams','labels'=>['name'=>'Artists & Worship Teams','singular_name'=>'Artist / Worship Team','add_new_item'=>'Add Artist / Worship Team','edit_item'=>'Edit Artist / Worship Team'],'public'=>true,'show_in_rest'=>true,'supports'=>['title','thumbnail'],'rewrite'=>['slug'=>'artists'],'menu_icon'=>'dashicons-groups']);
   }
-  public function register_artist() {
-    register_post_type('artist', ['label'=>'Artists & Worship Teams','labels'=>['name'=>'Artists & Worship Teams','singular_name'=>'Artist / Worship Team','add_new_item'=>'Add Artist / Worship Team','edit_item'=>'Edit Artist / Worship Team'],'public'=>true,'show_in_rest'=>true,'supports'=>['title','thumbnail'],'rewrite'=>['slug'=>'artists'],'menu_icon'=>'dashicons-groups']);
-  }
   public function admin_assets($hook) {
     if (!in_array($hook,['post.php','post-new.php'],true) || get_current_screen()->post_type !== 'song') return;
     wp_register_script('cla-admin', '', [], '0.2.0', true); wp_enqueue_script('cla-admin'); wp_add_inline_script('cla-admin', $this->admin_script());
@@ -48,9 +44,6 @@ final class Christian_Lyrics_API {
     register_rest_route('lyrics/v1','/songs/(?P<slug>[\w-]+)', ['methods'=>'GET','callback'=>[$this,'song'],'permission_callback'=>'__return_true']);
     register_rest_route('lyrics/v1','/suggestions', ['methods'=>'GET','callback'=>[$this,'suggestions'],'permission_callback'=>'__return_true']);
     register_rest_route('lyrics/v1','/search', ['methods'=>'GET','callback'=>[$this,'search'],'permission_callback'=>'__return_true']);
-    register_rest_route('lyrics/v1','/artists', ['methods'=>'GET','callback'=>[$this,'artists'],'permission_callback'=>'__return_true']);
-    register_rest_route('lyrics/v1','/artists', ['methods'=>'POST','callback'=>[$this,'create_artist'],'permission_callback'=>[$this,'task_permission']]);
-    register_rest_route('lyrics/v1','/artists/(?P<id>\d+)', ['methods'=>['PATCH','DELETE'],'callback'=>[$this,'manage_artist'],'permission_callback'=>[$this,'task_permission']]);
     register_rest_route('lyrics/v1','/artists', ['methods'=>'GET','callback'=>[$this,'artists'],'permission_callback'=>'__return_true']);
     register_rest_route('lyrics/v1','/artists', ['methods'=>'POST','callback'=>[$this,'create_artist'],'permission_callback'=>[$this,'task_permission']]);
     register_rest_route('lyrics/v1','/settings/ads', ['methods'=>['GET','PUT'],'callback'=>[$this,'ads'],'permission_callback'=>[$this,'ads_permission']]);
