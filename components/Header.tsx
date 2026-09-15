@@ -55,24 +55,26 @@ export function Header() {
       <a className="skip-link" href="#main">
         Skip to content
       </a>
-      {path !== "/" && (
-        <nav className="utility-nav" aria-label="Page navigation">
-          <Link className="utility-brand" href="/" aria-label="Elroi Tunes home">Elroi <em>Tunes</em></Link>
-          <button
-            type="button"
-            className="utility-back"
-            onClick={() =>
-              window.history.length > 1 ? router.back() : router.push("/")
-            }
-            aria-label="Go back"
-          >
-            <ArrowLeft size={18} strokeWidth={1.8} />
-            <span>Back</span>
-          </button>
-        </nav>
-      )}
-      {path !== "/upload" && <DesktopMenu />}
-      {showPageSearch && <div className="page-search"><SearchBox compact /></div>}
+      <div className="top-chrome">
+        {path !== "/" && (
+          <nav className="utility-nav" aria-label="Page navigation">
+            <Link className="utility-brand" href="/" aria-label="Elroi Tunes home">Elroi <em>Tunes</em></Link>
+            <button
+              type="button"
+              className="utility-back"
+              onClick={() =>
+                window.history.length > 1 ? router.back() : router.push("/")
+              }
+              aria-label="Go back"
+            >
+              <ArrowLeft size={18} strokeWidth={1.8} />
+              <span>Back</span>
+            </button>
+          </nav>
+        )}
+        {path !== "/upload" && <DesktopMenu />}
+        {showPageSearch && <div className="page-search"><SearchBox compact /></div>}
+      </div>
       <nav className="bottom-nav" aria-label="App navigation">
         {items.map((i) => (
           <Link
