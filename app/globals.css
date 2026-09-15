@@ -816,7 +816,7 @@ svg {
 }
 .site-footer {
   border-top: 1px solid var(--line);
-  padding: 26px 40px 118px;
+  padding: 26px 40px 52px;
   max-width: 1240px;
   margin: auto;
   display: flex;
