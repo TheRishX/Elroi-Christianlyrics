@@ -60,9 +60,28 @@ export async function getArtists(fresh = false): Promise<Artist[]> {
     return Array.from(new Map(mockSongs.flatMap((song) => [song.artist, song.worshipTeam || ""]).filter(Boolean).map((name) => [name.toLowerCase(), { id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), name }] as const)).values()).sort((a, b) => a.name.localeCompare(b.name));
   }
   try {
-    const res = await fetch(`${base}/artists`, fresh ? { cache: "no-store" } : { next: { revalidate: 300, tags: ["artists"] } });
-    if (!res.ok) throw new Error("WordPress unavailable");
-    return artistListFrom(await res.json());
+    const requestInit = fresh ? { cache: "no-store" as const } : { next: { revalidate: 300, tags: ["artists"] } };
+    const [artistsResponse, profilesResponse] = await Promise.all([
+      fetch(`${base}/artists`, requestInit),
+      fetch(`${base}/artist-profiles`, requestInit),
+    ]);
+    if (!artistsResponse.ok && !profilesResponse.ok) throw new Error("WordPress unavailable");
+    const [artistsData, profilesData] = await Promise.all([
+      artistsResponse.ok ? artistsResponse.json() : Promise.resolve({ items: [] }),
+      profilesResponse.ok ? profilesResponse.json() : Promise.resolve({ items: [] }),
+    ]);
+    const merged = new Map<string, Artist>();
+    for (const artist of [...artistListFrom(artistsData), ...artistListFrom(profilesData)]) {
+      const key = artist.name.trim().toLowerCase();
+      const existing = merged.get(key);
+      merged.set(key, {
+        ...(existing || artist),
+        ...artist,
+        name: artist.name.trim(),
+        image: artist.image || existing?.image || "",
+      });
+    }
+    return Array.from(merged.values()).sort((a, b) => a.name.localeCompare(b.name));
   } catch {
     return Array.from(new Map(mockSongs.flatMap((song) => [song.artist, song.worshipTeam || ""]).filter(Boolean).map((name) => [name.toLowerCase(), { id: 0, slug: name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, ""), name }] as const)).values()).sort((a, b) => a.name.localeCompare(b.name));
   }

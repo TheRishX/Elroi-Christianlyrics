@@ -472,10 +472,12 @@ export function UploadPortal() {
     setCheckError("");
     setMatches(null);
     try {
-      const response = await fetch(
-        `/api/upload/check-title?title=${encodeURIComponent(title)}`,
-        { cache: "no-store" },
-      );
+      const response = await fetch("/api/upload/check-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, lyrics: sections }),
+        cache: "no-store",
+      });
       const data = await response.json().catch(() => ({}));
       if (!response.ok)
         throw new Error(
@@ -500,10 +502,12 @@ export function UploadPortal() {
     setMessage(null);
     try {
       if (!confirmed) {
-        const response = await fetch(
-          `/api/upload/check-title?title=${encodeURIComponent(song.title.trim())}`,
-          { cache: "no-store" },
-        );
+        const response = await fetch("/api/upload/check-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title: song.title.trim(), lyrics: sections }),
+          cache: "no-store",
+        });
         const check = await response.json().catch(() => ({}));
         if (!response.ok)
           throw new Error(check.error || "Could not verify duplicate songs.");

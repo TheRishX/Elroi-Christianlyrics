@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Elroi Artist Profiles API
  * Description: Standalone artist profiles and profile image API for Elroi Tunes.
- * Version: 3.0.0
+ * Version: 3.1.0
  */
 if (!defined('ABSPATH')) exit;
 
@@ -26,6 +26,11 @@ final class Elroi_Artist_Profiles_V3 {
   }
 
   public function register_routes() {
+    register_rest_route('lyrics/v1', '/artist-profiles', [
+      'methods' => WP_REST_Server::READABLE,
+      'callback' => [$this, 'list_artists'],
+      'permission_callback' => '__return_true',
+    ]);
     register_rest_route('lyrics/v1', '/artists', [
       'methods' => WP_REST_Server::READABLE,
       'callback' => [$this, 'list_artists'],

@@ -480,8 +480,25 @@ export function UploadSettingsCenter() {
             ))}
           </div>
           {artistEditor && (
-            <div className="uploads-editor">
-              <h2>{selectedArtist ? "Edit artist profile" : "Add artist"}</h2>
+            <div
+              className="uploads-modal-backdrop"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) {
+                  setArtistEditor(false);
+                  setCropSource("");
+                }
+              }}
+            >
+              <div className="uploads-editor uploads-artist-modal" role="dialog" aria-modal="true" aria-labelledby="artist-editor-title">
+              <div className="uploads-modal-heading">
+                <div>
+                  <span className="eyebrow">ARTIST PROFILE</span>
+                  <h2 id="artist-editor-title">{selectedArtist ? "Edit artist" : "Add artist"}</h2>
+                  <p>Set a name and optional profile image.</p>
+                </div>
+                <button type="button" className="uploads-modal-close" aria-label="Close artist form" onClick={() => { setArtistEditor(false); setCropSource(""); }}>×</button>
+              </div>
               <input
                 value={artistName}
                 onChange={(event) => setArtistName(event.target.value)}
@@ -609,6 +626,7 @@ export function UploadSettingsCenter() {
                   {saving ? "Saving…" : "Save artist"}
                 </button>
               </div>
+              </div>
             </div>
           )}
         </section>
@@ -634,8 +652,22 @@ export function UploadSettingsCenter() {
             ))}
           </div>
           {selectedSong && (
-            <div className="uploads-editor song-editor">
-              <h2>Edit song</h2>
+            <div
+              className="uploads-modal-backdrop"
+              role="presentation"
+              onMouseDown={(event) => {
+                if (event.target === event.currentTarget) setSelectedSong(null);
+              }}
+            >
+            <div className="uploads-editor uploads-song-modal song-editor" role="dialog" aria-modal="true" aria-labelledby="song-editor-title">
+              <div className="uploads-modal-heading">
+                <div>
+                  <span className="eyebrow">SONG DETAILS</span>
+                  <h2 id="song-editor-title">Edit song</h2>
+                  <p>Update the details without changing the lyrics.</p>
+                </div>
+                <button type="button" className="uploads-modal-close" aria-label="Close song form" onClick={() => setSelectedSong(null)}>×</button>
+              </div>
               <div className="uploads-form-grid">
                 <label>
                   Title
@@ -754,6 +786,7 @@ export function UploadSettingsCenter() {
                   {saving ? "Saving…" : "Save song"}
                 </button>
               </div>
+            </div>
             </div>
           )}
         </section>
