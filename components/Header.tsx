@@ -2,11 +2,11 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Bookmark, BookOpen, House, Search } from "lucide-react";
+import { ArrowLeft, Bookmark, BookOpen, House, UsersRound } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
-  { href: "/search", label: "Search", icon: Search },
-  { href: "/browse", label: "Browse", icon: BookOpen },
+  { href: "/artists", label: "Artists", icon: UsersRound },
+  { href: "/browse", label: "Lyrics", icon: BookOpen },
   { href: "/bookmarks", label: "Saved", icon: Bookmark },
 ];
 export function DesktopMenu() {

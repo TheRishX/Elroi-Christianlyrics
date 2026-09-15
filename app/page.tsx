@@ -7,6 +7,7 @@ import { getSongs } from "@/lib/api";
 import { AdSlot } from "@/components/AdSlot";
 import { DesktopMenu } from "@/components/Header";
 import { HeroFaithMark } from "@/components/HeroFaithMark";
+import { ArtistDirectory } from "@/components/ArtistDirectory";
 export default async function Home() {
   const songs = await getSongs();
   return (
@@ -47,21 +48,10 @@ export default async function Home() {
           ))}
         </div>
         <Link className="text-link centered-text-link" href="/search">
-          Explore all songs <Icon name="arrow" size={17} />
+          Explore all lyrics <Icon name="arrow" size={17} />
         </Link>
       </section>
-      <section className="save-banner">
-        <span className="save-icon">
-          <Icon name="bookmark" size={28} />
-        </span>
-        <div>
-          <h2>Keep the songs that stay with you.</h2>
-          <p>Save your favorites. Come back whenever your heart needs them.</p>
-        </div>
-        <Link href="/bookmarks">
-          Your saved songs <Icon name="arrow" size={18} />
-        </Link>
-      </section>
+      <ArtistDirectory songs={songs} />
     </div>
   );
 }
