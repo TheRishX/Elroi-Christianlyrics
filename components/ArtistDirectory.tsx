@@ -3,28 +3,120 @@ import Link from "next/link";
 import { ArrowUpRight, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Artist, Song } from "@/lib/types";
-
-export function artistSlug(value: string) {
-  return value.toLowerCase().normalize("NFKD").replace(/[\u0300-\u036f]/g, "").replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
-}
-export function artistInitials(name: string) {
-  const parts = name.trim().split(/\s+/).filter(Boolean);
-  return parts.length > 1 ? `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase() : (parts[0]?.slice(0, 2) || "A").toUpperCase();
-}
+import { artistInitials, artistSlug } from "@/lib/artists";
 
 function artistNames(songs: Song[], artists: Artist[]) {
   return Array.from(
-    new Set([
-      ...artists.map((artist) => artist.name),
-      ...songs.flatMap((song) => [song.artist, ...(song.artists || []), song.worshipTeam || ""]),
-    ].map((name) => name.trim()).filter(Boolean)),
+    new Set(
+      [
+        ...artists.map((artist) => artist.name),
+        ...songs.flatMap((song) => [
+          song.artist,
+          ...(song.artists || []),
+          song.worshipTeam || "",
+        ]),
+      ]
+        .map((name) => name.trim())
+        .filter(Boolean),
+    ),
   ).sort((a, b) => a.localeCompare(b));
 }
 
-export function ArtistDirectory({ songs, artists = [], heading = "Popular artists", eyebrow = "THE VOICES BEHIND THE SONGS", showLink = true, variant = "rail" }: { songs: Song[]; artists?: Artist[]; heading?: string; eyebrow?: string; showLink?: boolean; variant?: "rail" | "grid" }) {
+export function ArtistDirectory({
+  songs,
+  artists = [],
+  heading = "Popular artists",
+  eyebrow = "THE VOICES BEHIND THE SONGS",
+  showLink = true,
+  variant = "rail",
+}: {
+  songs: Song[];
+  artists?: Artist[];
+  heading?: string;
+  eyebrow?: string;
+  showLink?: boolean;
+  variant?: "rail" | "grid";
+}) {
   const [query, setQuery] = useState("");
   const names = artistNames(songs, artists);
-  const visibleNames = useMemo(() => names.filter((name) => name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())), [names, query]);
-  const profiles = new Map(artists.map((artist) => [artist.name.toLowerCase(), artist]));
-  return <section className={`section artist-section artist-section-${variant}`}><div className="section-head home-centered-head"><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{heading}</h2></div>{showLink && <Link className="text-link" href="/artists">See all <ArrowUpRight size={16} /></Link>}</div>{variant === "grid" && <label className="directory-filter"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search artists…" aria-label="Search artists" /></label>}<div className="artist-grid">{visibleNames.map((name) => { const profile = profiles.get(name.toLowerCase()); const artistSongs = songs.filter((song) => (song.artists || [song.artist]).some((artist) => artist.toLowerCase() === name.toLowerCase()) || song.worshipTeam?.toLowerCase() === name.toLowerCase()); return <Link className="artist-card" href={`/artists/${profile?.slug || artistSlug(name)}`} key={name}><div className="artist-card-avatar">{profile?.image ? <img src={profile.image} alt="" /> : artistInitials(name)}</div><div className="artist-card-body"><h3>{name}</h3><p>{artistSongs.some((song) => song.worshipTeam?.toLowerCase() === name.toLowerCase()) ? "Worship team" : "Artist"}</p></div></Link>; })}</div>{!visibleNames.length && <p className="empty-artists">{query ? "No artists match your search." : "Artists will appear here as songs are added."}</p>}</section>;
+  const visibleNames = useMemo(
+    () =>
+      names.filter((name) =>
+        name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
+      ),
+    [names, query],
+  );
+  const profiles = new Map(
+    artists.map((artist) => [artist.name.toLowerCase(), artist]),
+  );
+  return (
+    <section className={`section artist-section artist-section-${variant}`}>
+      <div className="section-head home-centered-head">
+        <div>
+          {eyebrow && <span className="eyebrow">{eyebrow}</span>}
+          <h2>{heading}</h2>
+        </div>
+        {showLink && (
+          <Link className="text-link" href="/artists">
+            See all <ArrowUpRight size={16} />
+          </Link>
+        )}
+      </div>
+      {variant === "grid" && (
+        <label className="directory-filter">
+          <Search size={18} />
+          <input
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Search artists…"
+            aria-label="Search artists"
+          />
+        </label>
+      )}
+      <div className="artist-grid">
+        {visibleNames.map((name) => {
+          const profile = profiles.get(name.toLowerCase());
+          const artistSongs = songs.filter(
+            (song) =>
+              (song.artists || [song.artist]).some(
+                (artist) => artist.toLowerCase() === name.toLowerCase(),
+              ) || song.worshipTeam?.toLowerCase() === name.toLowerCase(),
+          );
+          return (
+            <Link
+              className="artist-card"
+              href={`/artists/${profile?.slug || artistSlug(name)}`}
+              key={name}
+            >
+              <div className="artist-card-avatar">
+                {profile?.image ? (
+                  <img src={profile.image} alt="" />
+                ) : (
+                  artistInitials(name)
+                )}
+              </div>
+              <div className="artist-card-body">
+                <h3>{name}</h3>
+                <p>
+                  {artistSongs.some(
+                    (song) =>
+                      song.worshipTeam?.toLowerCase() === name.toLowerCase(),
+                  )
+                    ? "Worship team"
+                    : "Artist"}
+                </p>
+              </div>
+            </Link>
+          );
+        })}
+      </div>
+      {!visibleNames.length && (
+        <p className="empty-artists">
+          {query
+            ? "No artists match your search."
+            : "Artists will appear here as songs are added."}
+        </p>
+      )}
+    </section>
+  );
 }
