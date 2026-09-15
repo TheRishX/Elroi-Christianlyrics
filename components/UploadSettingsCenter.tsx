@@ -329,7 +329,7 @@ export function UploadSettingsCenter() {
       romanAlternateTitles: (song.romanAlternateTitles || []).join(", "),
       seoTitle: song.seo?.title || "",
       seoDescription: song.seo?.description || "",
-      lastReviewedAt: song.lastReviewedAt || "",
+      lastReviewedAt: song.lastReviewedAt?.slice(0, 10) || "",
       genres: song.genres || [],
       categories: song.categories || [],
       themes: song.themes || [],
@@ -801,10 +801,6 @@ export function UploadSettingsCenter() {
                 <label>
                   Audio URL
                   <input value={songForm.audioUrl} onChange={(event) => setSongForm({ ...songForm, audioUrl: event.target.value })} />
-                </label>
-                <label>
-                  Album
-                  <input value={songForm.album} onChange={(event) => setSongForm({ ...songForm, album: event.target.value })} />
                 </label>
                 <label>
                   Release year

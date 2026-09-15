@@ -3,6 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { ArrowLeft, Bookmark, BookOpen, House, UsersRound } from "lucide-react";
+import { SearchBox } from "@/components/SearchBox";
 const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/artists", label: "Artists", icon: UsersRound },
@@ -48,6 +49,7 @@ export function Header() {
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
       : path === href;
+  const showPageSearch = !["/", "/upload", "/uploads", "/todo"].includes(path) && !path.startsWith("/search");
   return (
     <>
       <a className="skip-link" href="#main">
@@ -70,6 +72,7 @@ export function Header() {
         </nav>
       )}
       {path !== "/upload" && <DesktopMenu />}
+      {showPageSearch && <div className="page-search"><SearchBox compact /></div>}
       <nav className="bottom-nav" aria-label="App navigation">
         {items.map((i) => (
           <Link

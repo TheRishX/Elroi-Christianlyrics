@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
-import { ArrowUpRight, Mic2 } from "lucide-react";
+import { ArrowUpRight, Search } from "lucide-react";
+import { useMemo, useState } from "react";
 import { Artist, Song } from "@/lib/types";
 
 export function artistSlug(value: string) {
@@ -20,7 +22,9 @@ function artistNames(songs: Song[], artists: Artist[]) {
 }
 
 export function ArtistDirectory({ songs, artists = [], heading = "Popular artists", eyebrow = "THE VOICES BEHIND THE SONGS", showLink = true, variant = "rail" }: { songs: Song[]; artists?: Artist[]; heading?: string; eyebrow?: string; showLink?: boolean; variant?: "rail" | "grid" }) {
+  const [query, setQuery] = useState("");
   const names = artistNames(songs, artists);
+  const visibleNames = useMemo(() => names.filter((name) => name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase())), [names, query]);
   const profiles = new Map(artists.map((artist) => [artist.name.toLowerCase(), artist]));
-  return <section className={`section artist-section artist-section-${variant}`}><div className="section-head home-centered-head"><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{heading}</h2></div>{showLink && <Link className="text-link" href="/artists">See all <ArrowUpRight size={16} /></Link>}</div><div className="artist-grid">{names.map((name) => { const profile = profiles.get(name.toLowerCase()); const artistSongs = songs.filter((song) => (song.artists || [song.artist]).some((artist) => artist.toLowerCase() === name.toLowerCase()) || song.worshipTeam?.toLowerCase() === name.toLowerCase()); return <Link className="artist-card" href={`/artists/${profile?.slug || artistSlug(name)}`} key={name}><div className="artist-card-avatar">{profile?.image ? <img src={profile.image} alt="" /> : artistInitials(name)}</div><div className="artist-card-body"><h3>{name}</h3><p>{artistSongs.some((song) => song.worshipTeam?.toLowerCase() === name.toLowerCase()) ? "Worship team" : "Artist"}</p></div></Link>; })}</div>{!names.length && <p className="empty-artists">Artists will appear here as songs are added.</p>}</section>;
+  return <section className={`section artist-section artist-section-${variant}`}><div className="section-head home-centered-head"><div>{eyebrow && <span className="eyebrow">{eyebrow}</span>}<h2>{heading}</h2></div>{showLink && <Link className="text-link" href="/artists">See all <ArrowUpRight size={16} /></Link>}</div>{variant === "grid" && <label className="directory-filter"><Search size={18} /><input value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search artists…" aria-label="Search artists" /></label>}<div className="artist-grid">{visibleNames.map((name) => { const profile = profiles.get(name.toLowerCase()); const artistSongs = songs.filter((song) => (song.artists || [song.artist]).some((artist) => artist.toLowerCase() === name.toLowerCase()) || song.worshipTeam?.toLowerCase() === name.toLowerCase()); return <Link className="artist-card" href={`/artists/${profile?.slug || artistSlug(name)}`} key={name}><div className="artist-card-avatar">{profile?.image ? <img src={profile.image} alt="" /> : artistInitials(name)}</div><div className="artist-card-body"><h3>{name}</h3><p>{artistSongs.some((song) => song.worshipTeam?.toLowerCase() === name.toLowerCase()) ? "Worship team" : "Artist"}</p></div></Link>; })}</div>{!visibleNames.length && <p className="empty-artists">{query ? "No artists match your search." : "Artists will appear here as songs are added."}</p>}</section>;
 }

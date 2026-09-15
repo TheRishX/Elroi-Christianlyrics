@@ -1,5 +1,5 @@
 import { LanguageCards } from "@/components/LanguageCards";
-import { SongCard } from "@/components/SongCard";
+import { LyricsLibrary } from "@/components/LyricsLibrary";
 import { getSongs } from "@/lib/api";
 export const metadata = { title: "Christian lyrics | Elroi Tunes" };
 export default async function Browse() {
@@ -14,11 +14,7 @@ export default async function Browse() {
         <div className="section-head">
           <h2>Choose a language</h2>
         </div>
-        <div className="song-grid">
-          {songs.map((s) => (
-            <SongCard key={s.id} song={s} />
-          ))}
-        </div>
+        <LyricsLibrary songs={songs} />
       </section>
     </div>
   );

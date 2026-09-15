@@ -31,7 +31,13 @@ final class Elroi_Tunes_Publisher {
     if (!$provided) $provided = trim(str_replace('Bearer ', '', $request->get_header('authorization')));
     return hash_equals($this->token, (string) $provided) ? true : new WP_Error('forbidden', 'Invalid publisher token.', ['status' => 403]);
   }
-  private function text($value) { return sanitize_textarea_field((string) $value); }
+  private function text($value) {
+    $text = sanitize_textarea_field((string) $value);
+    // Some older portal payloads sent escaped newlines. Decode only those
+    // sequences and remove the known trailing `n` artifact after a line end.
+    $text = str_replace(["\\r\\n", "\\n", "\\r"], "\n", $text);
+    return preg_replace('/(?<=\))n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
+  }
   private function list($value) {
     if (!is_array($value)) return [];
     return array_values(array_filter(array_map(function($item) { return sanitize_text_field((string) $item); }, $value)));

@@ -31,7 +31,8 @@ final class Elroi_Tunes_Publisher {
     $text = preg_replace('/n(?=\s*\[[^\]\r\n]+\])/u', "\n", $text);
     $text = preg_replace('/n(?=\s*(?:pre-chorus|verse|chorus|bridge|intro|outro|refrain)\b)/iu', "\n", $text);
     $text = preg_replace('/n(?=[\x{0900}-\x{097F}])/u', "\n", $text);
-    return preg_replace('/(?<=[\p{Ll}\p{M}\d)])n(?=[A-Z])/u', "\n", $text) ?: $text;
+    $text = preg_replace('/(?<=[\p{Ll}\p{M}\d)])n(?=[A-Z])/u', "\n", $text) ?: $text;
+    return preg_replace('/(?<=\))n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
   }
   private function list($value) {
     if (!is_array($value)) return [];
