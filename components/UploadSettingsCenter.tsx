@@ -85,6 +85,19 @@ export function UploadSettingsCenter() {
       excerpt: "",
       youtubeUrl: "",
       audioUrl: "",
+      worshipTeam: "",
+      releaseYear: "",
+      songKey: "",
+      tempo: "",
+      alternateTitles: "",
+      romanAlternateTitles: "",
+      seoTitle: "",
+      seoDescription: "",
+      lastReviewedAt: "",
+      genres: [] as string[],
+      categories: [] as string[],
+      themes: [] as string[],
+      occasions: [] as string[],
       composer: "",
       lyricist: "",
       album: "",
@@ -308,6 +321,19 @@ export function UploadSettingsCenter() {
       excerpt: song.excerpt || "",
       youtubeUrl: song.youtubeUrl || "",
       audioUrl: song.audioUrl || "",
+      worshipTeam: song.worshipTeam || "",
+      releaseYear: song.releaseYear || "",
+      songKey: song.songKey || "",
+      tempo: song.tempo || "",
+      alternateTitles: (song.alternateTitles || []).join(", "),
+      romanAlternateTitles: (song.romanAlternateTitles || []).join(", "),
+      seoTitle: song.seo?.title || "",
+      seoDescription: song.seo?.description || "",
+      lastReviewedAt: song.lastReviewedAt || "",
+      genres: song.genres || [],
+      categories: song.categories || [],
+      themes: song.themes || [],
+      occasions: song.occasions || [],
       composer: song.composer || "",
       lyricist: song.lyricist || "",
       album: song.album || "",
@@ -333,6 +359,18 @@ export function UploadSettingsCenter() {
           artist: selectedArtists[0] || "",
           artists: selectedArtists,
           artistIds: songForm.artistIds,
+          alternateTitles: songForm.alternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
+          romanAlternateTitles: songForm.romanAlternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
+          genres: songForm.genres,
+          categories: songForm.categories,
+          themes: songForm.themes,
+          occasions: songForm.occasions,
+          worshipTeam: songForm.worshipTeam,
+          releaseYear: songForm.releaseYear,
+          songKey: songForm.songKey,
+          tempo: songForm.tempo,
+          seo: { title: songForm.seoTitle, description: songForm.seoDescription },
+          lastReviewedAt: songForm.lastReviewedAt,
           id: selectedSong.id,
           slug: selectedSong.slug,
           lyrics: selectedSong.lyrics,
@@ -756,7 +794,45 @@ export function UploadSettingsCenter() {
                     }
                   />
                 </label>
+                <label>
+                  Worship team
+                  <input value={songForm.worshipTeam} onChange={(event) => setSongForm({ ...songForm, worshipTeam: event.target.value })} />
+                </label>
+                <label>
+                  Audio URL
+                  <input value={songForm.audioUrl} onChange={(event) => setSongForm({ ...songForm, audioUrl: event.target.value })} />
+                </label>
+                <label>
+                  Album
+                  <input value={songForm.album} onChange={(event) => setSongForm({ ...songForm, album: event.target.value })} />
+                </label>
+                <label>
+                  Release year
+                  <input inputMode="numeric" value={songForm.releaseYear} onChange={(event) => setSongForm({ ...songForm, releaseYear: event.target.value })} />
+                </label>
+                <label>
+                  Song key
+                  <input value={songForm.songKey} onChange={(event) => setSongForm({ ...songForm, songKey: event.target.value })} placeholder="e.g. G" />
+                </label>
+                <label>
+                  Tempo (BPM)
+                  <input inputMode="numeric" value={songForm.tempo} onChange={(event) => setSongForm({ ...songForm, tempo: event.target.value })} />
+                </label>
               </div>
+              <details className="uploads-advanced-fields">
+                <summary>Search and SEO fields</summary>
+                <div className="uploads-form-grid">
+                  <label>Alternate titles <span className="optional">separate with commas</span><input value={songForm.alternateTitles} onChange={(event) => setSongForm({ ...songForm, alternateTitles: event.target.value })} /></label>
+                  <label>Roman alternate titles <span className="optional">separate with commas</span><input value={songForm.romanAlternateTitles} onChange={(event) => setSongForm({ ...songForm, romanAlternateTitles: event.target.value })} /></label>
+                  <label>SEO title<input value={songForm.seoTitle} onChange={(event) => setSongForm({ ...songForm, seoTitle: event.target.value })} /></label>
+                  <label>Last reviewed<input type="date" value={songForm.lastReviewedAt} onChange={(event) => setSongForm({ ...songForm, lastReviewedAt: event.target.value })} /></label>
+                  <label className="uploads-field-wide">SEO description<textarea rows={3} value={songForm.seoDescription} onChange={(event) => setSongForm({ ...songForm, seoDescription: event.target.value })} /></label>
+                  <label className="uploads-field-wide">Genres <span className="optional">separate with commas</span><input value={songForm.genres.join(", ")} onChange={(event) => setSongForm({ ...songForm, genres: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
+                  <label className="uploads-field-wide">Categories <span className="optional">separate with commas</span><input value={songForm.categories.join(", ")} onChange={(event) => setSongForm({ ...songForm, categories: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
+                  <label className="uploads-field-wide">Themes <span className="optional">separate with commas</span><input value={songForm.themes.join(", ")} onChange={(event) => setSongForm({ ...songForm, themes: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
+                  <label className="uploads-field-wide">Occasions <span className="optional">separate with commas</span><input value={songForm.occasions.join(", ")} onChange={(event) => setSongForm({ ...songForm, occasions: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
+                </div>
+              </details>
               <label>
                 Short description
                 <textarea
