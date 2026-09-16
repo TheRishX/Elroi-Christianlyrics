@@ -33,6 +33,22 @@ export type Song = {
   youtube?: { channel?: string; description?: string; thumbnail?: string; publishedAt?: string };
 };
 export type Artist = { id: number; slug: string; name: string; image?: string };
+export type VideoCategory = { id: number; slug: string; name: string; description?: string; count?: number };
+export type Video = {
+  id: number;
+  slug: string;
+  title: string;
+  description?: string;
+  youtubeUrl: string;
+  youtubeId: string;
+  thumbnailUrl?: string;
+  categoryId?: number;
+  category?: VideoCategory;
+  featured?: boolean;
+  status?: "publish" | "draft";
+  publishedAt?: string;
+  updatedAt?: string;
+};
 export type AdPlacement = { enabled: boolean; code?: string; imageUrl?: string; imageAlt?: string; linkUrl?: string; openNewTab?: boolean };
 export type AdSettings = { global: boolean; placements: Record<string, AdPlacement>; provider?: string; clientId?: string };
 export type SearchMatchType =

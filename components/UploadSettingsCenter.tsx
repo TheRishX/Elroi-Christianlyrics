@@ -63,7 +63,7 @@ export function UploadSettingsCenter() {
   const [logged, setLogged] = useState(false),
     [email, setEmail] = useState(""),
     [password, setPassword] = useState(""),
-    [tab, setTab] = useState<"artists" | "songs">("artists"),
+    [tab, setTab] = useState<"artists" | "songs" | "links">("artists"),
     [artists, setArtists] = useState<Artist[]>([]),
     [songs, setSongs] = useState<Song[]>([]),
     [query, setQuery] = useState(""),
@@ -75,6 +75,7 @@ export function UploadSettingsCenter() {
     [cropZoom, setCropZoom] = useState(1),
     [cropOffset, setCropOffset] = useState({ x: 0, y: 0 }),
     [selectedSong, setSelectedSong] = useState<Song | null>(null),
+    [linkArtist, setLinkArtist] = useState<Artist | null>(null),
     [songForm, setSongForm] = useState({
       title: "",
       artist: "",
@@ -149,6 +150,24 @@ export function UploadSettingsCenter() {
     () =>
       songs.filter((song) =>
         `${song.title} ${song.artist}`
+          .toLowerCase()
+          .includes(query.toLowerCase()),
+      ),
+    [songs, query],
+  );
+  const linkedSongs = useMemo(() => {
+    if (!linkArtist) return [];
+    const needle = linkArtist.name.toLowerCase();
+    return songs.filter((song) =>
+      [song.artist, ...(song.artists || []), song.worshipTeam || ""].some(
+        (name) => name.toLowerCase() === needle,
+      ),
+    );
+  }, [linkArtist, songs]);
+  const linkSongs = useMemo(
+    () =>
+      songs.filter((song) =>
+        `${song.title} ${song.artist} ${(song.artists || []).join(" ")}`
           .toLowerCase()
           .includes(query.toLowerCase()),
       ),
@@ -390,6 +409,42 @@ export function UploadSettingsCenter() {
       setSaving(false);
     }
   }
+  async function updateArtistLink(song: Song, connect: boolean) {
+    if (!linkArtist) return;
+    const current = song.artists?.length ? song.artists : [song.artist].filter(Boolean);
+    const names = connect
+      ? Array.from(new Set([...current, linkArtist.name]))
+      : current.filter((name) => name.toLowerCase() !== linkArtist.name.toLowerCase());
+    const nextPrimary = names[0] || song.worshipTeam || "";
+    if (!connect && !names.length && !song.worshipTeam) {
+      setMessage("A song must keep at least one artist or worship team. Connect another artist first.");
+      return;
+    }
+    setSaving(true);
+    try {
+      const response = await fetch("/api/upload/songs", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          ...song,
+          artist: nextPrimary,
+          artists: names,
+          artistId: names[0] === linkArtist.name ? linkArtist.id : undefined,
+          artistIds: names.map((name) =>
+            artists.find((artist) => artist.name.toLowerCase() === name.toLowerCase())?.id || 0,
+          ).filter(Boolean),
+        }),
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Artist link could not be updated.");
+      await load();
+      setMessage(connect ? `Connected ${linkArtist.name} to “${song.title}”.` : `Removed ${linkArtist.name} from “${song.title}”.`);
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : "Artist link could not be updated.");
+    } finally {
+      setSaving(false);
+    }
+  }
   async function deleteSong(song: Song) {
     if (!confirm(`Permanently delete “${song.title}”?`)) return;
     const response = await fetch(`/api/upload/songs?id=${song.id}`, {
@@ -466,6 +521,16 @@ export function UploadSettingsCenter() {
         >
           Songs
         </button>
+        <button
+          className={tab === "links" ? "active" : ""}
+          onClick={() => {
+            setTab("links");
+            setQuery("");
+            setLinkArtist(null);
+          }}
+        >
+          Artist links
+        </button>
       </nav>
       {message && <p className="uploads-message">{message}</p>}
       <div className="uploads-toolbar">
@@ -476,22 +541,21 @@ export function UploadSettingsCenter() {
             tab === "artists" ? "Search artists…" : "Search songs or artists…"
           }
         />
-        <button
-          className="admin-submit"
-          onClick={() => {
-            if (tab === "artists") {
+        {tab === "artists" && (
+          <button
+            className="admin-submit"
+            onClick={() => {
               setSelectedArtist(null);
               setArtistName("");
               setArtistImage("");
               setArtistEditor(true);
-            }
-          }}
-        >
-          {" "}
-          {tab === "artists" ? "+ Add artist" : "Manage songs"}
-        </button>
+            }}
+          >
+            + Add artist
+          </button>
+        )}
       </div>
-      {tab === "artists" ? (
+          {tab === "artists" ? (
         <section className="uploads-list">
           <div className="uploads-grid">
             {visibleArtists.map((artist) => (
@@ -508,6 +572,13 @@ export function UploadSettingsCenter() {
                 </div>
                 <h2>{artist.name}</h2>
                 <p>{artist.id ? "Artist profile" : "From song library"}</p>
+                <strong className="uploads-song-count">
+                  {songs.filter((song) =>
+                    [song.artist, ...(song.artists || []), song.worshipTeam || ""].some(
+                      (name) => name.toLowerCase() === artist.name.toLowerCase(),
+                    ),
+                  ).length} songs
+                </strong>
                 <div>
                   <button onClick={() => editArtist(artist)}>
                     {artist.id ? "Edit" : "Add profile"}
@@ -668,7 +739,7 @@ export function UploadSettingsCenter() {
             </div>
           )}
         </section>
-      ) : (
+      ) : tab === "songs" ? (
         <section className="uploads-list">
           <div className="uploads-song-list">
             {visibleSongs.map((song) => (
@@ -859,6 +930,55 @@ export function UploadSettingsCenter() {
                 </button>
               </div>
             </div>
+            </div>
+          )}
+        </section>
+      ) : (
+        <section className="uploads-list artist-links-panel">
+          <div className="artist-link-picker">
+            <label>
+              Artist to connect
+              <select
+                value={linkArtist?.id || linkArtist?.slug || ""}
+                onChange={(event) =>
+                  setLinkArtist(
+                    artists.find(
+                      (artist) => String(artist.id || artist.slug) === event.target.value,
+                    ) || null,
+                  )
+                }
+              >
+                <option value="">Choose an artist…</option>
+                {artists.map((artist) => (
+                  <option value={artist.id || artist.slug} key={artist.id || artist.slug}>
+                    {artist.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            {linkArtist && (
+              <p className="uploads-readonly-note">
+                {linkedSongs.length} song{linkedSongs.length === 1 ? "" : "s"} currently connected. Use the controls below to add or remove this artist.
+              </p>
+            )}
+          </div>
+          {!linkArtist ? (
+            <div className="manager-empty"><h3>Select an artist</h3><p>Then connect or remove that artist from uploaded songs.</p></div>
+          ) : (
+            <div className="uploads-song-list">
+              {linkSongs.map((song) => {
+                const connected = [song.artist, ...(song.artists || []), song.worshipTeam || ""].some(
+                  (name) => name.toLowerCase() === linkArtist.name.toLowerCase(),
+                );
+                return (
+                  <article key={song.id} className="uploads-song-row">
+                    <div><strong>{song.title}</strong><span>{song.artists?.length ? song.artists.join(", ") : song.artist} · {song.language}</span></div>
+                    <button disabled={saving} onClick={() => updateArtistLink(song, !connected)}>
+                      {connected ? "Remove artist" : "Connect artist"}
+                    </button>
+                  </article>
+                );
+              })}
             </div>
           )}
         </section>

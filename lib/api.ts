@@ -1,5 +1,5 @@
 import { songs as mockSongs } from "./mock-data";
-import { AdSettings, Artist, Language, SearchResult, Song, SongSuggestion } from "./types";
+import { AdSettings, Artist, Language, SearchResult, Song, SongSuggestion, Video, VideoCategory } from "./types";
 import { normalizeLyricText } from "./lyrics";
 const base = process.env.WORDPRESS_API_URL;
 function listFrom(data: unknown): Song[] {
@@ -105,6 +105,34 @@ export async function getSong(slug: string): Promise<Song | undefined> {
   } catch {
     return mockSongs.find((s) => s.slug === slug);
   }
+}
+export async function getVideoCategories(fresh = false): Promise<VideoCategory[]> {
+  if (!base) return [];
+  try {
+    const response = await fetch(`${base}/video-categories`, fresh ? { cache: "no-store" } : { next: { revalidate: 300, tags: ["video-categories"] } });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : data.items || [];
+  } catch { return []; }
+}
+export async function getVideos(options: { category?: string; featured?: boolean; fresh?: boolean } = {}): Promise<Video[]> {
+  if (!base) return [];
+  try {
+    const url = new URL(`${base}/videos`);
+    if (options.category) url.searchParams.set("category", options.category);
+    if (options.featured) url.searchParams.set("featured", "1");
+    const response = await fetch(url, options.fresh ? { cache: "no-store" } : { next: { revalidate: 120, tags: ["videos"] } });
+    if (!response.ok) return [];
+    const data = await response.json();
+    return Array.isArray(data) ? data : data.items || [];
+  } catch { return []; }
+}
+export async function getVideo(slug: string): Promise<Video | undefined> {
+  if (!base) return undefined;
+  try {
+    const response = await fetch(`${base}/videos/${encodeURIComponent(slug)}`, { next: { revalidate: 120, tags: [`video:${slug}`] } });
+    return response.ok ? await response.json() : undefined;
+  } catch { return undefined; }
 }
 function fold(value: string) {
   return value

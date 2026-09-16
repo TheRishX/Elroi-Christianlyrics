@@ -85,6 +85,7 @@ export default async function ArtistPage({
       <ArtistDirectory
         songs={songs}
         artists={artists}
+        excludeName={name}
         heading="Explore more artists"
         eyebrow="KEEP DISCOVERING"
       />

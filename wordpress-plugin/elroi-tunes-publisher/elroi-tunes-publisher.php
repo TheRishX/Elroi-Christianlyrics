@@ -18,6 +18,24 @@ final class Elroi_Tunes_Publisher {
     register_rest_route('elroi-publisher/v1', '/songs', [
       'methods' => 'POST', 'callback' => [$this, 'publish_song'], 'permission_callback' => [$this, 'permission'],
     ]);
+    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)', [
+      'methods' => 'PATCH', 'callback' => [$this, 'update_song'], 'permission_callback' => [$this, 'permission'],
+    ]);
+  }
+  public function update_song($request) {
+    $post = get_post((int) $request['id']);
+    if (!$post || $post->post_type !== 'song') return new WP_Error('not_found', 'Song not found.', ['status' => 404]);
+    $body = (array) $request->get_json_params();
+    $body['slug'] = $post->post_name;
+    foreach (['title', 'language', 'artist', 'worshipTeam', 'lyrics'] as $field) {
+      if (!array_key_exists($field, $body)) {
+        $meta = ['title' => $post->post_title, 'language' => get_post_meta($post->ID, 'language', true), 'artist' => get_post_meta($post->ID, 'artist', true), 'worshipTeam' => get_post_meta($post->ID, 'worship_team', true), 'lyrics' => json_decode(get_post_meta($post->ID, 'lyrics', true) ?: '[]', true)];
+        $body[$field] = $meta[$field];
+      }
+    }
+    $proxy = new WP_REST_Request('POST');
+    $proxy->set_body(wp_json_encode($body));
+    return $this->publish_song($proxy);
   }
   public function permission($request) {
     if (!$this->token) return new WP_Error('publisher_not_configured', 'Publisher token is not configured.', ['status' => 503]);

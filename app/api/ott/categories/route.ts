@@ -1,0 +1,10 @@
+import { cookies } from "next/headers";
+import { NextResponse } from "next/server";
+import { cookieName, validSession } from "@/lib/auth";
+function base() { const value = process.env.WORDPRESS_API_URL; if (!value) throw new Error("WordPress is not configured yet."); return value.replace(/\/$/, ""); }
+function headers() { const token = process.env.WORDPRESS_API_TOKEN || ""; return { "Content-Type": "application/json", Accept: "application/json", "X-Elroi-API-Token": token, Authorization: `Bearer ${token}` }; }
+async function auth() { return validSession((await cookies()).get(cookieName)?.value); }
+export async function GET() { try { const response = await fetch(`${base()}/video-categories`, { cache: "no-store" }); return NextResponse.json(await response.json().catch(() => ({})), { status: response.status }); } catch { return NextResponse.json({ items: [] }, { status: 502 }); } }
+export async function POST(request: Request) { if (!await auth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const response = await fetch(`${base()}/video-categories`, { method: "POST", headers: headers(), body: JSON.stringify(await request.json()), cache: "no-store" }); return NextResponse.json(await response.json().catch(() => ({})), { status: response.status }); }
+export async function PATCH(request: Request) { if (!await auth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const body = await request.json(); const response = await fetch(`${base()}/video-categories/${body.id}`, { method: "PATCH", headers: headers(), body: JSON.stringify(body), cache: "no-store" }); return NextResponse.json(await response.json().catch(() => ({})), { status: response.status }); }
+export async function DELETE(request: Request) { if (!await auth()) return NextResponse.json({ error: "Unauthorized" }, { status: 401 }); const id = new URL(request.url).searchParams.get("id"); const response = await fetch(`${base()}/video-categories/${id}`, { method: "DELETE", headers: headers(), cache: "no-store" }); return NextResponse.json(await response.json().catch(() => ({})), { status: response.status }); }

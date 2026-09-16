@@ -222,6 +222,12 @@
   font-size: 11px;
   line-height: 1.45;
 }
+.artist-song-count {
+  display: block;
+  margin-top: 4px;
+  color: var(--olive);
+  font-size: 11px;
+}
 .artist-section-grid .artist-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
@@ -967,6 +973,16 @@
   color: var(--muted);
   font-size: 12px;
 }
+.uploads-song-count {
+  display: block;
+  margin: 5px 0 12px;
+  color: var(--olive);
+  font-size: 12px;
+  font-weight: 600;
+}
+.artist-links-panel { margin-top: 8px; }
+.artist-link-picker { max-width: 520px; margin-bottom: 24px; }
+.artist-link-picker select { width: 100%; margin-top: 8px; }
 .uploaded-row time {
   font-variant-numeric: tabular-nums;
 }

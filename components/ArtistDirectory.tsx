@@ -29,6 +29,7 @@ export function ArtistDirectory({
   eyebrow = "THE VOICES BEHIND THE SONGS",
   showLink = true,
   variant = "rail",
+  excludeName = "",
 }: {
   songs: Song[];
   artists?: Artist[];
@@ -36,6 +37,7 @@ export function ArtistDirectory({
   eyebrow?: string;
   showLink?: boolean;
   variant?: "rail" | "grid";
+  excludeName?: string;
 }) {
   const [query, setQuery] = useState("");
   const [visibleCount, setVisibleCount] = useState(variant === "grid" ? 12 : 6);
@@ -44,9 +46,10 @@ export function ArtistDirectory({
   const visibleNames = useMemo(
     () =>
       names.filter((name) =>
+        name.toLocaleLowerCase() !== excludeName.trim().toLocaleLowerCase() &&
         name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()),
       ),
-    [names, query],
+    [names, query, excludeName],
   );
   useEffect(() => {
     setVisibleCount(variant === "grid" ? 12 : 6);
@@ -129,6 +132,9 @@ export function ArtistDirectory({
                     ? "Worship team"
                     : "Artist"}
                 </p>
+                <span className="artist-song-count">
+                  {artistSongs.length} song{artistSongs.length === 1 ? "" : "s"}
+                </span>
               </div>
             </Link>
           );

@@ -2,13 +2,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect } from "react";
-import { ArrowLeft, Bookmark, BookOpen, House, UsersRound } from "lucide-react";
+import { ArrowLeft, Bookmark, BookOpen, House, UsersRound, Video } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/artists", label: "Artists", icon: UsersRound },
   { href: "/browse", label: "Lyrics", icon: BookOpen },
-  { href: "/bookmarks", label: "Saved", icon: Bookmark },
+  { href: "/videos", label: "Videos", icon: Video },
 ];
+const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
 export function DesktopMenu() {
   const path = usePathname();
   const active = (href: string) =>
@@ -22,7 +23,7 @@ export function DesktopMenu() {
       className="section-nav"
       aria-label="Main navigation"
     >
-      {items.map((i) => (
+      {[...items, savedItem].map((i) => (
         <Link
           key={i.href}
           href={i.href}
@@ -86,6 +87,9 @@ export function Header() {
           </Link>
         ))}
       </nav>
+      <Link className="mobile-saved-link" href={savedItem.href} aria-label="Saved songs">
+        <Bookmark size={16} /> Saved
+      </Link>
     </>
   );
 }
