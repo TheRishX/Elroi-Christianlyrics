@@ -17,11 +17,11 @@ final class Elroi_Video_OTT {
   public function routes() {
     register_rest_route('lyrics/v1','/videos', ['methods'=>'GET','callback'=>[$this,'videos'],'permission_callback'=>'__return_true']);
     register_rest_route('lyrics/v1','/videos', ['methods'=>'POST','callback'=>[$this,'save_video'],'permission_callback'=>[$this,'private_access']]);
-    register_rest_route('lyrics/v1','/videos/(?P<id>\d+)', ['methods'=>'PATCH','callback'=>[$this,'save_video'],'permission_callback'=>[$this,'private_access']]);
+    register_rest_route('lyrics/v1','/videos/(?P<id>\d+)', ['methods'=>['POST','PUT','PATCH'],'callback'=>[$this,'save_video'],'permission_callback'=>[$this,'private_access']]);
     register_rest_route('lyrics/v1','/videos/(?P<id>\d+)', ['methods'=>'DELETE','callback'=>[$this,'delete_video'],'permission_callback'=>[$this,'private_access']]);
     register_rest_route('lyrics/v1','/video-categories', ['methods'=>'GET','callback'=>[$this,'categories'],'permission_callback'=>'__return_true']);
     register_rest_route('lyrics/v1','/video-categories', ['methods'=>'POST','callback'=>[$this,'save_category'],'permission_callback'=>[$this,'private_access']]);
-    register_rest_route('lyrics/v1','/video-categories/(?P<id>\d+)', ['methods'=>'PATCH','callback'=>[$this,'save_category'],'permission_callback'=>[$this,'private_access']]);
+    register_rest_route('lyrics/v1','/video-categories/(?P<id>\d+)', ['methods'=>['POST','PUT','PATCH'],'callback'=>[$this,'save_category'],'permission_callback'=>[$this,'private_access']]);
     register_rest_route('lyrics/v1','/video-categories/(?P<id>\d+)', ['methods'=>'DELETE','callback'=>[$this,'delete_category'],'permission_callback'=>[$this,'private_access']]);
   }
   public function private_access($request) { $provided = trim((string)$request->get_header('X-Elroi-API-Token')); if (!$provided) $provided = trim(str_replace('Bearer ', '', $request->get_header('Authorization'))); return $this->token && $provided && hash_equals($this->token, $provided); }
