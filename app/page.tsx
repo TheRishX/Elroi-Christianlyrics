@@ -40,8 +40,8 @@ export default async function Home() {
             <h2>A new song for today</h2>
           </div>
         </div>
-        <InfiniteSongGrid songs={songs} initialCount={6} />
-        <Link className="text-link centered-text-link" href="/search">
+        <InfiniteSongGrid songs={songs} initialCount={6} homepage />
+        <Link className="text-link centered-text-link homepage-explore-link" href="/search">
           Explore all lyrics <Icon name="arrow" size={17} />
         </Link>
       </section>

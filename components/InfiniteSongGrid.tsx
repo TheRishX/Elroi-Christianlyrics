@@ -8,10 +8,12 @@ export function InfiniteSongGrid({
   songs,
   initialCount = 6,
   batchSize = 6,
+  homepage = false,
 }: {
   songs: Song[];
   initialCount?: number;
   batchSize?: number;
+  homepage?: boolean;
 }) {
   const [visibleCount, setVisibleCount] = useState(
     Math.min(initialCount, songs.length),
@@ -23,6 +25,7 @@ export function InfiniteSongGrid({
   }, [songs, initialCount]);
 
   useEffect(() => {
+    if (homepage) return;
     const sentinel = sentinelRef.current;
     if (!sentinel || visibleCount >= songs.length) return;
     const observer = new IntersectionObserver(
@@ -35,16 +38,16 @@ export function InfiniteSongGrid({
     );
     observer.observe(sentinel);
     return () => observer.disconnect();
-  }, [batchSize, songs.length, visibleCount]);
+  }, [batchSize, homepage, songs.length, visibleCount]);
 
   return (
     <>
-      <div className="song-grid">
+      <div className={`song-grid${homepage ? " homepage-song-grid" : ""}`}>
         {songs.slice(0, visibleCount).map((song) => (
           <SongCard key={song.id} song={song} />
         ))}
       </div>
-      {visibleCount < songs.length && (
+      {!homepage && visibleCount < songs.length && (
         <div
           ref={sentinelRef}
           className="infinite-scroll-sentinel"
