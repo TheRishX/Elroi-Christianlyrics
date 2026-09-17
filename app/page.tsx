@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { SearchBox } from "@/components/SearchBox";
-import { InfiniteSongGrid } from "@/components/InfiniteSongGrid";
+import { PaginatedSongGrid } from "@/components/PaginatedSongGrid";
 import { LanguageCards } from "@/components/LanguageCards";
 import { Icon } from "@/components/Icon";
 import { getArtists, getSongs } from "@/lib/api";
@@ -40,7 +40,7 @@ export default async function Home() {
             <h2>A new song for today</h2>
           </div>
         </div>
-        <InfiniteSongGrid songs={songs} initialCount={6} homepage />
+        <PaginatedSongGrid songs={songs} itemsPerPage={6} homepage />
         <Link className="text-link centered-text-link homepage-explore-link" href="/search">
           Explore all lyrics <Icon name="arrow" size={17} />
         </Link>
