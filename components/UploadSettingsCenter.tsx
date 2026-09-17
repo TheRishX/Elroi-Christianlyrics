@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Eye } from "lucide-react";
+import { Eye, FileText, ListMusic, Search } from "lucide-react";
 import {
   ChangeEvent,
   PointerEvent,
@@ -96,6 +96,7 @@ export function UploadSettingsCenter() {
     [cropZoom, setCropZoom] = useState(1),
     [cropOffset, setCropOffset] = useState({ x: 0, y: 0 }),
     [selectedSong, setSelectedSong] = useState<Song | null>(null),
+    [editorSection, setEditorSection] = useState<"details" | "seo" | "lyrics">("details"),
     [lyricsDirty, setLyricsDirty] = useState(false),
     [linkArtist, setLinkArtist] = useState<Artist | null>(null),
     [songForm, setSongForm] = useState({
@@ -141,7 +142,11 @@ export function UploadSettingsCenter() {
     const artistData = await artistResponse.json();
     const songData = await songResponse.json();
     setArtists(artistData.items || []);
-    setSongs(songData.items || []);
+    setSongs(
+      (songData.items || []).filter(
+        (song: Song & { status?: string }) => song.status !== "trash",
+      ),
+    );
   }
   useEffect(() => {
     fetch("/api/admin/session")
@@ -356,6 +361,7 @@ export function UploadSettingsCenter() {
   }
   function editSong(song: Song) {
     setSelectedSong(song);
+    setEditorSection("details");
     setLyricsDirty(false);
     setSongForm({
       title: song.title,
@@ -486,12 +492,17 @@ export function UploadSettingsCenter() {
   }
   async function deleteSong(song: Song) {
     if (!confirm(`Move “${song.title}” to trash? You can restore it later.`)) return;
-    const response = await fetch(`/api/upload/songs?id=${song.id}`, {
-      method: "DELETE", headers: { "If-Match": String(song.revision || "") },
-    });
-    if (response.ok) {
-      await load();
+    setSongs((current) => current.filter((item) => item.id !== song.id));
+    try {
+      const response = await fetch(`/api/upload/songs?id=${song.id}`, {
+        method: "DELETE", headers: { "If-Match": String(song.revision || "") },
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || "Song could not be deleted.");
       setMessage("Song moved to trash.");
+    } catch (error) {
+      await load();
+      setMessage(error instanceof Error ? error.message : "Song could not be deleted.");
     }
   }
   if (loading)
@@ -826,7 +837,12 @@ export function UploadSettingsCenter() {
                 </div>
                 <button type="button" className="uploads-modal-close" aria-label="Close song form" onClick={() => setSelectedSong(null)}>×</button>
               </div>
-              <div className="uploads-form-grid">
+              <div className="song-editor-tabs" role="tablist" aria-label="Song editor sections">
+                <button type="button" role="tab" aria-selected={editorSection === "details"} className={editorSection === "details" ? "active" : ""} onClick={() => setEditorSection("details")}><FileText size={17} aria-hidden="true" /><span>Song details</span></button>
+                <button type="button" role="tab" aria-selected={editorSection === "seo"} className={editorSection === "seo" ? "active" : ""} onClick={() => setEditorSection("seo")}><Search size={17} aria-hidden="true" /><span>Search &amp; SEO</span></button>
+                <button type="button" role="tab" aria-selected={editorSection === "lyrics"} className={editorSection === "lyrics" ? "active" : ""} onClick={() => setEditorSection("lyrics")}><ListMusic size={17} aria-hidden="true" /><span>Lyrics editor</span></button>
+              </div>
+              {editorSection === "details" && <div className="uploads-form-grid">
                 <label>
                   Title
                   <input
@@ -934,10 +950,8 @@ export function UploadSettingsCenter() {
                   Tempo (BPM)
                   <input inputMode="numeric" value={songForm.tempo} onChange={(event) => setSongForm({ ...songForm, tempo: event.target.value })} />
                 </label>
-              </div>
-              <details className="uploads-advanced-fields">
-                <summary>Search and SEO fields</summary>
-                <div className="uploads-form-grid">
+              </div>}
+              {editorSection === "seo" && <div className="uploads-form-grid">
                   <label>Alternate titles <span className="optional">separate with commas</span><input value={songForm.alternateTitles} onChange={(event) => setSongForm({ ...songForm, alternateTitles: event.target.value })} /></label>
                   <label>Roman alternate titles <span className="optional">separate with commas</span><input value={songForm.romanAlternateTitles} onChange={(event) => setSongForm({ ...songForm, romanAlternateTitles: event.target.value })} /></label>
                   <label>SEO title<input value={songForm.seoTitle} onChange={(event) => setSongForm({ ...songForm, seoTitle: event.target.value })} /></label>
@@ -947,9 +961,8 @@ export function UploadSettingsCenter() {
                   <label className="uploads-field-wide">Categories <span className="optional">separate with commas</span><input value={songForm.categories.join(", ")} onChange={(event) => setSongForm({ ...songForm, categories: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
                   <label className="uploads-field-wide">Themes <span className="optional">separate with commas</span><input value={songForm.themes.join(", ")} onChange={(event) => setSongForm({ ...songForm, themes: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
                   <label className="uploads-field-wide">Occasions <span className="optional">separate with commas</span><input value={songForm.occasions.join(", ")} onChange={(event) => setSongForm({ ...songForm, occasions: event.target.value.split(",").map((value) => value.trim()).filter(Boolean) })} /></label>
-                </div>
-              </details>
-              <label>
+              </div>}
+              {editorSection === "details" && <label>
                 Short description
                 <textarea
                   rows={3}
@@ -958,14 +971,12 @@ export function UploadSettingsCenter() {
                     setSongForm({ ...songForm, excerpt: event.target.value })
                   }
                 />
-              </label>
-              <details className="uploads-advanced-fields lyrics-editor-panel">
-                <summary>
-                  <span>Lyrics editor</span>
-                  <span className="lyrics-editor-status">
-                    {lyricsDirty ? "Unsaved changes" : "Optional"}
-                  </span>
-                </summary>
+              </label>}
+              {editorSection === "lyrics" && <div className="lyrics-editor-panel">
+                <div className="lyrics-editor-panel-heading">
+                  <span>Hindi and Hinglish lyrics</span>
+                  <span className="lyrics-editor-status">{lyricsDirty ? "Unsaved changes" : "Ready to edit"}</span>
+                </div>
                 <p className="uploads-readonly-note">
                   Keep the same section headings in both fields, for example
                   <code>[Verse 1]</code>. Each Hindi section is saved together
@@ -995,7 +1006,7 @@ export function UploadSettingsCenter() {
                     />
                   </label>
                 </div>
-              </details>
+              </div>}
               <div>
                 <button
                   className="secondary-button"

@@ -4612,6 +4612,63 @@ body.upload-mode .upload-page {
 .uploads-song-modal .uploads-form-grid {
   gap: 16px;
 }
+.song-editor-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 6px;
+  margin: 24px 0;
+  padding: 5px;
+  border: 1px solid #dce8d7;
+  border-radius: 14px;
+  background: #f2f6ef;
+}
+.song-editor-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  min-height: 44px;
+  border: 0;
+  border-radius: 10px;
+  background: transparent;
+  color: #6f7c70;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color .2s ease, background .2s ease, box-shadow .2s ease, transform .2s ease;
+}
+.song-editor-tabs button:hover {
+  color: #304a32;
+  background: #e8f0e3;
+}
+.song-editor-tabs button.active {
+  color: #304a32;
+  background: #fff;
+  box-shadow: 0 2px 8px rgba(48, 74, 50, .12);
+}
+.song-editor-tabs button.active svg {
+  color: #6d8c65;
+}
+.song-editor-tabs button:active {
+  transform: translateY(1px);
+}
+.song-editor-tabs button:focus-visible {
+  outline: 3px solid #9ab992;
+  outline-offset: 2px;
+}
+.lyrics-editor-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
+  color: #304a32;
+  font-weight: 700;
+}
+.lyrics-editor-panel-heading > span:first-child {
+  font-size: 16px;
+}
 .uploads-song-modal .uploads-readonly-note {
   margin: 2px 0 0;
   padding: 12px 14px;
@@ -4754,6 +4811,9 @@ body.upload-mode .upload-page {
     grid-column: auto;
   }
   .lyrics-editor-grid {
+    grid-template-columns: 1fr;
+  }
+  .song-editor-tabs {
     grid-template-columns: 1fr;
   }
 }
