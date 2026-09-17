@@ -520,7 +520,10 @@ export function UploadPortal() {
       }
       const response = await fetch("/api/upload/publish", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "Idempotency-Key": crypto.randomUUID(),
+        },
         body: JSON.stringify({ ...song, lyrics: sections, status }),
       });
       const data = await response.json().catch(() => ({}));
