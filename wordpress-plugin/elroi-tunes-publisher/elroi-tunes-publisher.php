@@ -63,9 +63,14 @@ final class Elroi_Tunes_Publisher {
   private function revision($id) { return max(1,(int)get_post_meta($id,'elroi_revision',true)); }
   private function document($post) {
     $lyrics=$this->decode($post->ID,'lyrics',true); if (is_wp_error($lyrics)) return ['id'=>(int)$post->ID,'integrity'=>'recovery_required','revision'=>$this->revision($post->ID)];
-    $data=['schemaVersion'=>2,'id'=>(int)$post->ID,'revision'=>$this->revision($post->ID),'status'=>$post->post_status,'slug'=>$post->post_name,'title'=>$post->post_title,'language'=>get_post_meta($post->ID,'language',true),'lyrics'=>$lyrics];
+    $data=['schemaVersion'=>3,'id'=>(int)$post->ID,'revision'=>$this->revision($post->ID),'status'=>$post->post_status,'slug'=>$post->post_name,'title'=>$post->post_title,'language'=>get_post_meta($post->ID,'language',true),'lyrics'=>$lyrics,'updatedAt'=>$post->post_modified_gmt];
     foreach($this->text_meta as $key) $data[$this->camel($key)]=get_post_meta($post->ID,$key,true);
     foreach(['artists','artist_ids','alternate_titles','roman_alternate_titles','youtube_metadata'] as $key) { $value=$this->decode($post->ID,$key); $data[$this->camel($key)]=is_wp_error($value)?[]:$value; }
+    $data['seo']=['title'=>get_post_meta($post->ID,'seo_title',true),'description'=>get_post_meta($post->ID,'seo_description',true)];
+    foreach(['genres'=>'genre','categories'=>'worship_category','themes'=>'theme','occasions'=>'occasion'] as $field=>$taxonomy) {
+      $terms=taxonomy_exists($taxonomy)?wp_get_object_terms($post->ID,$taxonomy,['fields'=>'names']):[];
+      $data[$field]=is_wp_error($terms)?[]:array_values($terms);
+    }
     return $data;
   }
   private function camel($key) { return preg_replace_callback('/_([a-z])/',function($m){return strtoupper($m[1]);},$key); }
@@ -98,6 +103,12 @@ final class Elroi_Tunes_Publisher {
     if($creating){update_post_meta($id,'language',sanitize_key($body['language']));update_post_meta($id,'artist',sanitize_text_field($body['artist']));}
     foreach(['artists'=>'artists','artistIds'=>'artist_ids','alternateTitles'=>'alternate_titles','romanAlternateTitles'=>'roman_alternate_titles','youtube'=>'youtube_metadata'] as $field=>$key)if(array_key_exists($field,$body)||$creating){$value=$field==='artists'?$this->list_value($body[$field]??[$body['artist']??'']):($body[$field]??[]);$ok=$this->write_json($id,$key,$value);if(is_wp_error($ok))return$ok;}
     if(array_key_exists('seo',$body)){ $seo=is_array($body['seo'])?$body['seo']:[]; update_post_meta($id,'seo_title',$this->text($seo['title']??'')); update_post_meta($id,'seo_description',$this->text($seo['description']??'')); }
+    foreach(['genres'=>'genre','categories'=>'worship_category','themes'=>'theme','occasions'=>'occasion'] as $field=>$taxonomy) {
+      if(array_key_exists($field,$body) && taxonomy_exists($taxonomy)) {
+        $result=wp_set_object_terms($id,$this->list_value($body[$field]),$taxonomy,false);
+        if(is_wp_error($result))return$result;
+      }
+    }
     $ok=$this->write_json($id,'lyrics',$lyrics);if(is_wp_error($ok))return$ok; update_post_meta($id,'elroi_revision',$this->revision($id)+1); return true;
   }
   private function snapshot($id) { $data=['at'=>gmdate('c'),'revision'=>$this->revision($id),'lyrics_raw'=>get_post_meta($id,'lyrics',true),'meta'=>[]];foreach(array_merge($this->text_meta,['language','artists','artist_ids','alternate_titles','roman_alternate_titles','youtube_metadata'])as$key)$data['meta'][$key]=get_post_meta($id,$key,true);add_post_meta($id,'elroi_song_snapshot',wp_slash(wp_json_encode($data,JSON_UNESCAPED_UNICODE))); }

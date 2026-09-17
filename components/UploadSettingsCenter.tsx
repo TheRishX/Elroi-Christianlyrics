@@ -365,6 +365,10 @@ export function UploadSettingsCenter() {
     setSelectedSong(song);
     setEditorSection("details");
     setLyricsDirty(false);
+    const legacySong = song as Song & {
+      seoTitle?: string;
+      seoDescription?: string;
+    };
     setSongForm({
       title: song.title,
       artist: song.artist,
@@ -381,8 +385,8 @@ export function UploadSettingsCenter() {
       tempo: song.tempo || "",
       alternateTitles: (song.alternateTitles || []).join(", "),
       romanAlternateTitles: (song.romanAlternateTitles || []).join(", "),
-      seoTitle: song.seo?.title || "",
-      seoDescription: song.seo?.description || "",
+      seoTitle: song.seo?.title || legacySong.seoTitle || "",
+      seoDescription: song.seo?.description || legacySong.seoDescription || "",
       lastReviewedAt: song.lastReviewedAt?.slice(0, 10) || "",
       genres: song.genres || [],
       categories: song.categories || [],
