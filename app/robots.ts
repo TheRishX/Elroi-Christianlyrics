@@ -1,1 +1,3 @@
-import { MetadataRoute } from "next"; export default function robots():MetadataRoute.Robots{return{rules:{userAgent:"*",allow:"/",disallow:["/jesus","/bookmarks","/search"]},sitemap:`${process.env.NEXT_PUBLIC_SITE_URL||"http://localhost:3000"}/sitemap.xml`};}
+import { MetadataRoute } from "next";
+function siteUrl() { return (process.env.NEXT_PUBLIC_SITE_URL || "https://elroitunes.com").replace(/\/$/, ""); }
+export default function robots(): MetadataRoute.Robots { return { rules: { userAgent: "*", allow: "/", disallow: ["/upload", "/uploads", "/todo", "/jesus", "/bookmarks", "/search"] }, sitemap: `${siteUrl()}/sitemap.xml` }; }

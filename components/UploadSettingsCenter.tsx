@@ -373,7 +373,6 @@ export function UploadSettingsCenter() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...selectedSong,
           ...songForm,
           artist: selectedArtists[0] || "",
           artists: selectedArtists,
@@ -391,8 +390,7 @@ export function UploadSettingsCenter() {
           seo: { title: songForm.seoTitle, description: songForm.seoDescription },
           lastReviewedAt: songForm.lastReviewedAt,
           id: selectedSong.id,
-          slug: selectedSong.slug,
-          lyrics: selectedSong.lyrics,
+          revision: selectedSong.revision,
         }),
       });
       const data = await response.json();
@@ -426,7 +424,8 @@ export function UploadSettingsCenter() {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          ...song,
+          id: song.id,
+          revision: song.revision,
           artist: nextPrimary,
           artists: names,
           artistId: names[0] === linkArtist.name ? linkArtist.id : undefined,
@@ -446,13 +445,13 @@ export function UploadSettingsCenter() {
     }
   }
   async function deleteSong(song: Song) {
-    if (!confirm(`Permanently delete “${song.title}”?`)) return;
+    if (!confirm(`Move “${song.title}” to trash? You can restore it later.`)) return;
     const response = await fetch(`/api/upload/songs?id=${song.id}`, {
-      method: "DELETE",
+      method: "DELETE", headers: { "If-Match": String(song.revision || "") },
     });
     if (response.ok) {
       await load();
-      setMessage("Song deleted.");
+      setMessage("Song moved to trash.");
     }
   }
   if (loading)

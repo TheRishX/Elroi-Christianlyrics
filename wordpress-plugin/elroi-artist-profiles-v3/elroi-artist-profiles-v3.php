@@ -132,7 +132,7 @@ final class Elroi_Artist_Profiles_V3 {
       $artist = get_post_meta($song->ID, 'artist', true);
       $changed = count($remaining) !== count($artists) || strtolower(trim((string) $worship_team)) === $key || strtolower(trim((string) $artist)) === $key;
       if (!$changed) continue;
-      update_post_meta($song->ID, 'artists', wp_json_encode($remaining, JSON_UNESCAPED_UNICODE));
+      update_post_meta($song->ID, 'artists', wp_slash(wp_json_encode($remaining, JSON_UNESCAPED_UNICODE)));
       update_post_meta($song->ID, 'artist_ids', '[]');
       update_post_meta($song->ID, 'artist', $remaining[0] ?? '');
       if (strtolower(trim((string) $worship_team)) === $key) update_post_meta($song->ID, 'worship_team', '');

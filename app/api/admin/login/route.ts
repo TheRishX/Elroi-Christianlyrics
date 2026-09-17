@@ -1,18 +1,20 @@
 import { NextResponse } from "next/server";
-import { cookieName, createSession, hasPasswordConfiguration, verifyPassword } from "@/lib/auth";
+import { cookieName, createSession, hasPasswordConfiguration, hasSessionConfiguration, verifyPassword } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+const attempts = new Map<string, { count: number; resetAt: number }>();
 
 export async function POST(request: Request) {
   const body = await request.json().catch(() => ({}));
   const email = String(body.email || "").trim().toLowerCase();
   const password = String(body.password || "");
-  // This is the portal's fixed permitted account. ADMIN_EMAIL remains supported
-  // for a future owner change, but an empty legacy variable cannot break login.
-  const expected = (process.env["ADMIN_EMAIL"] || "Therishx@gmail.com").trim().toLowerCase();
+  const expected = process.env.ADMIN_EMAIL?.trim().toLowerCase();
+  const key = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown";
+  const now = Date.now(), entry = attempts.get(key);
+  if (entry && entry.resetAt > now && entry.count >= 5) return NextResponse.json({ error: "Too many login attempts. Try again later." }, { status: 429 });
 
-  if (!hasPasswordConfiguration()) {
+  if (!expected || !hasPasswordConfiguration() || !hasSessionConfiguration()) {
     return NextResponse.json(
       { error: "Portal login is not configured. Add ADMIN_PASSWORD in Vercel, then redeploy." },
       { status: 503 },
@@ -22,9 +24,10 @@ export async function POST(request: Request) {
   if (email !== expected || !verifyPassword(password)) {
     // No credentials are logged. These flags make deployment diagnosis possible
     // from Vercel logs without revealing the email or password.
-    console.warn("Admin login rejected", { emailMatches: email === expected, passwordProvided: password.length > 0 });
+    attempts.set(key, { count: entry && entry.resetAt > now ? entry.count + 1 : 1, resetAt: now + 15 * 60 * 1000 });
     return NextResponse.json({ error: "Invalid email or password." }, { status: 401 });
   }
+  attempts.delete(key);
 
   const response = NextResponse.json({ ok: true });
   response.cookies.set(cookieName, createSession(email), {

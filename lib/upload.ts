@@ -14,12 +14,13 @@ export function isLanguage(value: unknown): value is Song["language"] {
 }
 
 export function cleanLyrics(value: unknown) {
-  if (!Array.isArray(value)) return [];
+  if (!Array.isArray(value)) throw new Error("Lyrics must be an array of sections.");
   return value
     .map((section) => ({
+      id: typeof section?.id === "string" && section.id.trim() ? section.id.trim() : undefined,
       label: String(section?.label || "Section").trim(),
-      original: normalizeLyricText(section?.original || "").trim(),
-      ...(section?.roman ? { roman: normalizeLyricText(section.roman).trim() } : {}),
+      original: normalizeLyricText(section?.original || ""),
+      ...(typeof section?.roman === "string" ? { roman: normalizeLyricText(section.roman) } : {}),
     }))
     .filter((section) => section.original || section.roman);
 }
@@ -60,9 +61,9 @@ export async function youtubeDetails(url: string) {
   } catch {
     throw new Error("Paste a valid YouTube URL.");
   }
-  const videoId = parsed.hostname.includes("youtu.be")
-    ? parsed.pathname.slice(1)
-    : parsed.searchParams.get("v");
+  const host = parsed.hostname.toLowerCase().replace(/^www\./, "");
+  const videoId = host === "youtu.be" ? parsed.pathname.slice(1) :
+    (host === "youtube.com" || host === "m.youtube.com") ? (parsed.searchParams.get("v") || parsed.pathname.match(/^\/(?:shorts|embed|live)\/([^/?]+)/)?.[1]) : null;
   if (!videoId) throw new Error("That YouTube URL does not include a video ID.");
   const key = process.env.YOUTUBE_API_KEY;
   if (!key) return { source: "url" as const, videoId, url };

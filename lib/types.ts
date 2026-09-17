@@ -1,5 +1,5 @@
 export type Language = "hindi" | "nepali" | "english";
-export type LyricSection = { label: string; original: string; roman?: string };
+export type LyricSection = { id?: string; label: string; original: string; roman?: string };
 export type Song = {
   id: number;
   slug: string;
@@ -19,6 +19,8 @@ export type Song = {
   youtubeUrl?: string;
   audioUrl?: string;
   updatedAt?: string;
+  revision?: number;
+  integrity?: "valid" | "recovery_required";
   seo?: { title?: string; description?: string };
   composer?: string;
   lyricist?: string;

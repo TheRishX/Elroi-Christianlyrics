@@ -4,7 +4,7 @@ import { Song } from "@/lib/types";
 import { normalizeLyricText } from "@/lib/lyrics";
 import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
-type DisplaySection = { label: string; original: string; roman?: string };
+type DisplaySection = { id?: string; label: string; original: string; roman?: string };
 
 // Bracket tags are the current format. The bare-heading branch is only a
 // migration reader for older records that were saved before tags were kept.
@@ -94,21 +94,7 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
   return result.filter((section) => section.original);
 }
 
-function getDisplaySections(song: Song): DisplaySection[] {
-  const original: DisplaySection[] = [];
-  const roman: DisplaySection[] = [];
-  song.lyrics.forEach((section) => {
-    const preservedRoman = cleanLegacy(section.roman || "", true);
-    original.push(...splitSections(repairDevanagari(cleanLegacy(section.original), preservedRoman), section.label));
-    if (section.roman)
-      roman.push(...splitSections(preservedRoman, section.label));
-  });
-  const alignedOriginal = alignNativeSections(original, roman);
-  return alignedOriginal.map((section, index) => ({
-    ...section,
-    roman: roman[index]?.original || "",
-  }));
-}
+function getDisplaySections(song: Song): DisplaySection[] { return song.lyrics.map((section) => ({ id: section.id, label: section.label, original: section.original, roman: section.roman })); }
 
 export function LyricReader({ song }: { song: Song }) {
   const displaySections = getDisplaySections(song);
@@ -206,7 +192,7 @@ export function LyricReader({ song }: { song: Song }) {
       </div>
       <div className={`lyrics mode-${mode}`} style={{ fontSize: `${size}em` }}>
         {displaySections.map((section, i) => (
-          <div className="lyric-section" key={i}>
+          <div className="lyric-section" key={section.id || i}>
             <h3>{section.label}</h3>
             <div className="lyric-columns">
               <p

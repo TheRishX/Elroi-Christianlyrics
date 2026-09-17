@@ -3,6 +3,7 @@ import { Header } from "@/components/Header";
 import { PWARegister } from "@/components/PWARegister";
 import "./globals.css";
 export const metadata: Metadata = {
+  metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL || "https://elroitunes.com").replace(/\/$/, "")),
   title: {
     default: "Elroi Tunes — Christian Lyrics",
     template: "%s · Elroi Tunes",

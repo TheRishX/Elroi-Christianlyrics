@@ -186,7 +186,7 @@ export function ArtistPicker({
     try {
       const response = await fetch("/api/upload/artists", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { "Content-Type": "application/json", "Idempotency-Key": crypto.randomUUID() },
         body: JSON.stringify({ name, imageData }),
       });
       const data = await response.json().catch(() => ({}));

@@ -1,108 +1,100 @@
 <?php
 /**
  * Plugin Name: Elroi Tunes Publisher
- * Description: Private REST publishing endpoint for the Elroi Tunes lyrics portal.
- * Version: 1.0.0
+ * Description: Canonical, authenticated song persistence API for Elroi Tunes.
+ * Version: 2.0.0
  */
 if (!defined('ABSPATH')) exit;
 
 final class Elroi_Tunes_Publisher {
   private $token;
+  private $text_meta = ['roman_title','artist','worship_team','composer','lyricist','album','release_year','song_key','tempo','youtube_url','audio_url','excerpt','last_reviewed_at','seo_title','seo_description'];
   public function __construct() {
-    // Hosting panels commonly do not expose custom PHP environment variables.
-    // Reuse the private token already stored by the active lyrics plugin first.
     $this->token = getenv('WORDPRESS_API_TOKEN') ?: get_option('elroi_todo_api_token', '');
     add_action('rest_api_init', [$this, 'routes']);
   }
   public function routes() {
-    register_rest_route('elroi-publisher/v1', '/songs', [
-      'methods' => 'POST', 'callback' => [$this, 'publish_song'], 'permission_callback' => [$this, 'permission'],
-    ]);
-    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)', [
-      'methods' => 'PATCH', 'callback' => [$this, 'update_song'], 'permission_callback' => [$this, 'permission'],
-    ]);
-  }
-  public function update_song($request) {
-    $post = get_post((int) $request['id']);
-    if (!$post || $post->post_type !== 'song') return new WP_Error('not_found', 'Song not found.', ['status' => 404]);
-    $body = (array) $request->get_json_params();
-    $body['slug'] = $post->post_name;
-    foreach (['title', 'language', 'artist', 'worshipTeam', 'lyrics'] as $field) {
-      if (!array_key_exists($field, $body)) {
-        $meta = ['title' => $post->post_title, 'language' => get_post_meta($post->ID, 'language', true), 'artist' => get_post_meta($post->ID, 'artist', true), 'worshipTeam' => get_post_meta($post->ID, 'worship_team', true), 'lyrics' => json_decode(get_post_meta($post->ID, 'lyrics', true) ?: '[]', true)];
-        $body[$field] = $meta[$field];
-      }
-    }
-    $proxy = new WP_REST_Request('POST');
-    $proxy->set_body(wp_json_encode($body));
-    return $this->publish_song($proxy);
+    register_rest_route('elroi-publisher/v1', '/capabilities', ['methods'=>'GET','callback'=>[$this,'capabilities'],'permission_callback'=>[$this,'permission']]);
+    register_rest_route('elroi-publisher/v1', '/songs', ['methods'=>['GET','POST'],'callback'=>[$this,'songs'],'permission_callback'=>[$this,'permission']]);
+    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)', ['methods'=>['GET','PATCH','DELETE'],'callback'=>[$this,'song'],'permission_callback'=>[$this,'permission']]);
+    register_rest_route('elroi-publisher/v1', '/songs/(?P<id>\d+)/restore', ['methods'=>'POST','callback'=>[$this,'restore'],'permission_callback'=>[$this,'permission']]);
   }
   public function permission($request) {
-    if (!$this->token) return new WP_Error('publisher_not_configured', 'Publisher token is not configured.', ['status' => 503]);
+    if (!$this->token) return new WP_Error('publisher_not_configured','Publisher token is not configured.',['status'=>503]);
     $provided = $request->get_header('x-elroi-api-token');
-    if (!$provided) $provided = trim(str_replace('Bearer ', '', $request->get_header('authorization')));
-    return hash_equals($this->token, (string) $provided) ? true : new WP_Error('forbidden', 'Invalid publisher token.', ['status' => 403]);
+    if (!$provided && preg_match('/^Bearer\s+(.+)$/i', $request->get_header('authorization'), $m)) $provided = $m[1];
+    return is_string($provided) && strlen($provided) === strlen($this->token) && hash_equals($this->token, $provided) ? true : new WP_Error('forbidden','Invalid publisher token.',['status'=>403]);
   }
-  private function text($value) {
-    $text = sanitize_textarea_field((string) $value);
-    $text = str_replace(["\\r\\n", "\\n", "\\r"], "\n", $text);
-    $text = preg_replace('/n(?=\s*\[[^\]\r\n]+\])/u', "\n", $text);
-    $text = preg_replace('/n(?=\s*(?:pre-chorus|verse|chorus|bridge|intro|outro|refrain)\b)/iu', "\n", $text);
-    $text = preg_replace('/n(?=[\x{0900}-\x{097F}])/u', "\n", $text);
-    $text = preg_replace('/(?<=[\p{Ll}\p{M}\d)])n(?=[A-Z])/u', "\n", $text) ?: $text;
-    $text = preg_replace('/(?<=[\x{0900}-\x{097F}])n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
-    return preg_replace('/(?<=\))n(?=\s*(?:\R|$))/u', '', $text) ?: $text;
+  public function capabilities() { return rest_ensure_response(['version'=>'2.0.0','schemaVersion'=>2,'actions'=>['create','patch','trash','restore'],'revisionRequired'=>true]); }
+  private function text($value) { return str_replace(["\r\n","\r"], "\n", sanitize_textarea_field((string)$value)); }
+  private function list_value($value) { if (!is_array($value)) return []; return array_values(array_filter(array_map(function($v){ return sanitize_text_field((string)$v); },$value), 'strlen')); }
+  private function encode($value) { $json=wp_json_encode($value,JSON_UNESCAPED_UNICODE); return $json===false ? new WP_Error('encoding_failed','Document could not be encoded.',['status'=>422]) : wp_slash($json); }
+  private function decode($id,$key,$required=false) {
+    $raw=get_post_meta($id,$key,true);
+    if ($raw==='' && !$required) return [];
+    $value=json_decode($raw,true);
+    if (json_last_error()!==JSON_ERROR_NONE || !is_array($value)) return new WP_Error('integrity_failure',"Stored $key is invalid; recovery is required.",['status'=>409]);
+    return $value;
   }
-  private function list($value) {
-    if (!is_array($value)) return [];
-    return array_values(array_filter(array_map(function($item) { return sanitize_text_field((string) $item); }, $value)));
+  private function write_json($id,$key,$value) {
+    $encoded=$this->encode($value); if (is_wp_error($encoded)) return $encoded;
+    update_post_meta($id,$key,$encoded);
+    $stored=get_post_meta($id,$key,true); $decoded=json_decode($stored,true);
+    if (json_last_error()!==JSON_ERROR_NONE || $decoded!==$value) return new WP_Error('integrity_failure',"Could not verify $key after saving.",['status'=>500]);
+    return true;
   }
-  private function lyrics($value) {
-    if (!is_array($value)) return [];
-    $items = [];
-    foreach ($value as $section) {
-      if (!is_array($section)) continue;
-      $original = $this->text($section['original'] ?? '');
-      $roman = $this->text($section['roman'] ?? '');
-      if (!$original && !$roman) continue;
-      $items[] = ['label' => sanitize_text_field($section['label'] ?? 'Section'), 'original' => $original, 'roman' => $roman];
+  private function lyrics($value,$allow_empty=false) {
+    if (!is_array($value)) return new WP_Error('invalid_lyrics','Lyrics must be a section array.',['status'=>422]);
+    $items=[]; foreach($value as $section) {
+      if (!is_array($section)) return new WP_Error('invalid_lyrics','Every lyric section must be an object.',['status'=>422]);
+      $original=$this->text($section['original']??''); $roman=$this->text($section['roman']??'');
+      if ($original==='' && $roman==='') continue;
+      $items[]=['id'=>sanitize_text_field($section['id']??wp_generate_uuid4()),'label'=>sanitize_text_field($section['label']??'Section'),'original'=>$original,'roman'=>$roman];
     }
+    if (!$allow_empty && !$items) return new WP_Error('empty_lyrics','At least one non-empty lyric section is required.',['status'=>422]);
     return $items;
   }
-  public function publish_song($request) {
-    $body = (array) $request->get_json_params();
-    $title = sanitize_text_field($body['title'] ?? '');
-    $language = sanitize_key($body['language'] ?? 'english');
-    $artist = sanitize_text_field($body['artist'] ?? '');
-    $artists = array_values(array_unique(array_filter(array_map('sanitize_text_field', (array) ($body['artists'] ?? [$artist])))));
-    if (!$artist && $artists) $artist = $artists[0];
-    $lyrics = $this->lyrics($body['lyrics'] ?? []);
-    if (!$title || !$artist || !$lyrics || !in_array($language, ['hindi', 'nepali', 'english'], true)) return new WP_Error('invalid_song', 'Title, artist, language, and lyrics are required.', ['status' => 400]);
-    $slug = sanitize_title($body['slug'] ?? $title);
-    $existing = get_page_by_path($slug, OBJECT, 'song');
-    $post = ['post_type' => 'song', 'post_title' => $title, 'post_name' => $slug, 'post_status' => ($body['status'] ?? 'publish') === 'draft' ? 'draft' : 'publish', 'post_content' => $this->content($lyrics)];
-    if ($existing) { $post['ID'] = $existing->ID; $id = wp_update_post($post, true); } else { $id = wp_insert_post($post, true); }
-    if (is_wp_error($id)) return $id;
-    $meta = ['roman_title'=>'romanTitle','artist'=>'artist','worship_team'=>'worshipTeam','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','release_year'=>'releaseYear','song_key'=>'songKey','tempo'=>'tempo','youtube_url'=>'youtubeUrl','audio_url'=>'audioUrl','excerpt'=>'excerpt','last_reviewed_at'=>'lastReviewedAt'];
-    foreach ($meta as $key => $field) update_post_meta($id, $key, $this->text($body[$field] ?? ''));
-    update_post_meta($id, 'artist_ids', wp_json_encode(array_values(array_filter(array_map('absint', (array) ($body['artistIds'] ?? []))))));
-    update_post_meta($id, 'artists', wp_json_encode($artists ?: [$artist], JSON_UNESCAPED_UNICODE));
-    update_post_meta($id, 'language', $language); update_post_meta($id, 'lyrics', wp_json_encode($lyrics, JSON_UNESCAPED_UNICODE));
-    $alternate_titles = $this->list($body['alternateTitles'] ?? []); if (!$alternate_titles) $alternate_titles = [$title];
-    $roman_alternate_titles = $this->list($body['romanAlternateTitles'] ?? []); if (!$roman_alternate_titles) $roman_alternate_titles = array_filter([$body['romanTitle'] ?? '']);
-    update_post_meta($id, 'alternate_titles', wp_json_encode($alternate_titles, JSON_UNESCAPED_UNICODE));
-    update_post_meta($id, 'roman_alternate_titles', wp_json_encode($roman_alternate_titles, JSON_UNESCAPED_UNICODE));
-    update_post_meta($id, 'seo_title', $this->text($body['seo']['title'] ?? '')); update_post_meta($id, 'seo_description', $this->text($body['seo']['description'] ?? ''));
-    update_post_meta($id, 'youtube_metadata', wp_json_encode(is_array($body['youtube'] ?? null) ? $body['youtube'] : [], JSON_UNESCAPED_UNICODE));
-    foreach (['genre'=>'genres','worship_category'=>'categories','theme'=>'themes','occasion'=>'occasions'] as $taxonomy => $field) if (taxonomy_exists($taxonomy)) wp_set_object_terms($id, $this->list($body[$field] ?? []), $taxonomy, false);
-    $post_object = get_post($id); $this->revalidate($post_object);
-    return new WP_REST_Response(['id'=>(int)$id, 'slug'=>$post_object->post_name, 'status'=>$post_object->post_status, 'url'=>get_permalink($id)], $existing ? 200 : 201);
+  private function revision($id) { return max(1,(int)get_post_meta($id,'elroi_revision',true)); }
+  private function document($post) {
+    $lyrics=$this->decode($post->ID,'lyrics',true); if (is_wp_error($lyrics)) return ['id'=>(int)$post->ID,'integrity'=>'recovery_required','revision'=>$this->revision($post->ID)];
+    $data=['schemaVersion'=>2,'id'=>(int)$post->ID,'revision'=>$this->revision($post->ID),'status'=>$post->post_status,'slug'=>$post->post_name,'title'=>$post->post_title,'language'=>get_post_meta($post->ID,'language',true),'lyrics'=>$lyrics];
+    foreach($this->text_meta as $key) $data[$this->camel($key)]=get_post_meta($post->ID,$key,true);
+    foreach(['artists','artist_ids','alternate_titles','roman_alternate_titles','youtube_metadata'] as $key) { $value=$this->decode($post->ID,$key); $data[$this->camel($key)]=is_wp_error($value)?[]:$value; }
+    return $data;
   }
-  private function content($lyrics) { $html = ''; foreach ($lyrics as $section) $html .= '<h3>' . esc_html($section['label']) . '</h3><p>' . nl2br(esc_html($section['original'])) . '</p>'; return $html; }
-  private function revalidate($post) {
-    $url = getenv('VERCEL_REVALIDATE_URL') ?: getenv('SONGLIGHT_REVALIDATE_URL'); $secret = getenv('WORDPRESS_WEBHOOK_SECRET') ?: getenv('SONGLIGHT_REVALIDATE_SECRET');
-    if (!$url || !$secret) return;
-    wp_remote_post($url, ['timeout'=>5, 'blocking'=>false, 'headers'=>['Content-Type'=>'application/json','X-Webhook-Secret'=>$secret], 'body'=>wp_json_encode(['slug'=>$post->post_name,'status'=>$post->post_status,'language'=>get_post_meta($post->ID,'language',true)])]);
+  private function camel($key) { return preg_replace_callback('/_([a-z])/',function($m){return strtoupper($m[1]);},$key); }
+  private function content($lyrics) { $html=''; foreach($lyrics as $section) $html.='<h3>'.esc_html($section['label']).'</h3><p>'.nl2br(esc_html($section['original'])).'</p>'; return $html; }
+  private function expected_revision($request,$post) {
+    $expected=(int)$request->get_header('if-match'); if (!$expected) return new WP_Error('revision_required','If-Match revision is required.',['status'=>400]);
+    return $expected===$this->revision($post->ID) ? true : new WP_Error('revision_conflict','Song was changed by another editor.',['status'=>409]);
   }
+  public function songs($request) {
+    if ($request->get_method()==='GET') { $page=max(1,(int)$request->get_param('page')); $per_page=min(50,max(1,(int)$request->get_param('per_page')?:50)); $query=new WP_Query(['post_type'=>'song','post_status'=>['publish','draft','trash'],'posts_per_page'=>$per_page,'paged'=>$page,'orderby'=>'modified','order'=>'DESC']); return rest_ensure_response(['items'=>array_map([$this,'document'],$query->posts),'page'=>$page,'pages'=>(int)$query->max_num_pages,'total'=>(int)$query->found_posts]); }
+    $body=(array)$request->get_json_params(); $title=sanitize_text_field($body['title']??''); $artist=sanitize_text_field($body['artist']??''); $language=sanitize_key($body['language']??''); $lyrics=$this->lyrics($body['lyrics']??null);
+    if (!$title||!$artist||!in_array($language,['hindi','nepali','english'],true)||is_wp_error($lyrics)) return is_wp_error($lyrics)?$lyrics:new WP_Error('invalid_song','Title, artist, language and lyrics are required.',['status'=>422]);
+    $slug=sanitize_title($body['slug']??$title); if (get_page_by_path($slug,OBJECT,'song')) return new WP_Error('duplicate_slug','A song already uses this slug.',['status'=>409]);
+    $id=wp_insert_post(['post_type'=>'song','post_title'=>$title,'post_name'=>$slug,'post_status'=>($body['status']??'draft')==='publish'?'publish':'draft','post_content'=>$this->content($lyrics)],true); if(is_wp_error($id))return $id;
+    $result=$this->persist($id,$body,$lyrics,true); if(is_wp_error($result)){wp_trash_post($id);return $result;} return new WP_REST_Response($this->document(get_post($id)),201);
+  }
+  public function song($request) {
+    $post=get_post((int)$request['id']); if(!$post||$post->post_type!=='song')return new WP_Error('not_found','Song not found.',['status'=>404]);
+    if($request->get_method()==='GET')return rest_ensure_response($this->document($post));
+    $check=$this->expected_revision($request,$post); if(is_wp_error($check))return $check;
+    if($request->get_method()==='DELETE'){ $this->snapshot($post->ID); return wp_trash_post($post->ID)?rest_ensure_response(['ok'=>true,'id'=>$post->ID,'status'=>'trash']):new WP_Error('trash_failed','Song could not be trashed.',['status'=>500]); }
+    $body=(array)$request->get_json_params(); if(array_key_exists('lyrics',$body)){ $lyrics=$this->lyrics($body['lyrics'],false); if(is_wp_error($lyrics))return $lyrics; }else{$lyrics=$this->decode($post->ID,'lyrics',true);if(is_wp_error($lyrics))return $lyrics;}
+    $this->snapshot($post->ID); $result=$this->persist($post->ID,$body,$lyrics,false); if(is_wp_error($result))return $result; return rest_ensure_response($this->document(get_post($post->ID)));
+  }
+  private function persist($id,$body,$lyrics,$creating) {
+    $post=get_post($id); $update=['ID'=>$id]; foreach(['title'=>'post_title','status'=>'post_status'] as $field=>$key)if(array_key_exists($field,$body))$update[$key]=$field==='status'&&$body[$field]!=='publish'?'draft':sanitize_text_field($body[$field]);
+    $update['post_content']=$this->content($lyrics); if(count($update)>2||$creating){$result=wp_update_post($update,true);if(is_wp_error($result))return$result;}
+    $fields=['language'=>'language','artist'=>'artist','worshipTeam'=>'worship_team','romanTitle'=>'roman_title','composer'=>'composer','lyricist'=>'lyricist','album'=>'album','releaseYear'=>'release_year','songKey'=>'song_key','tempo'=>'tempo','youtubeUrl'=>'youtube_url','audioUrl'=>'audio_url','excerpt'=>'excerpt','lastReviewedAt'=>'last_reviewed_at'];
+    foreach($fields as $field=>$key)if(array_key_exists($field,$body))update_post_meta($id,$key,$field==='language'?sanitize_key($body[$field]):$this->text($body[$field]));
+    if($creating){update_post_meta($id,'language',sanitize_key($body['language']));update_post_meta($id,'artist',sanitize_text_field($body['artist']));}
+    foreach(['artists'=>'artists','artistIds'=>'artist_ids','alternateTitles'=>'alternate_titles','romanAlternateTitles'=>'roman_alternate_titles','youtube'=>'youtube_metadata'] as $field=>$key)if(array_key_exists($field,$body)||$creating){$value=$field==='artists'?$this->list_value($body[$field]??[$body['artist']??'']):($body[$field]??[]);$ok=$this->write_json($id,$key,$value);if(is_wp_error($ok))return$ok;}
+    if(array_key_exists('seo',$body)){ $seo=is_array($body['seo'])?$body['seo']:[]; update_post_meta($id,'seo_title',$this->text($seo['title']??'')); update_post_meta($id,'seo_description',$this->text($seo['description']??'')); }
+    $ok=$this->write_json($id,'lyrics',$lyrics);if(is_wp_error($ok))return$ok; update_post_meta($id,'elroi_revision',$this->revision($id)+1); return true;
+  }
+  private function snapshot($id) { $data=['at'=>gmdate('c'),'revision'=>$this->revision($id),'lyrics_raw'=>get_post_meta($id,'lyrics',true),'meta'=>[]];foreach(array_merge($this->text_meta,['language','artists','artist_ids','alternate_titles','roman_alternate_titles','youtube_metadata'])as$key)$data['meta'][$key]=get_post_meta($id,$key,true);add_post_meta($id,'elroi_song_snapshot',wp_slash(wp_json_encode($data,JSON_UNESCAPED_UNICODE))); }
+  public function restore($request) { $post=get_post((int)$request['id']);if(!$post||$post->post_type!=='song')return new WP_Error('not_found','Song not found.',['status'=>404]);$check=$this->expected_revision($request,$post);if(is_wp_error($check))return$check; $result=wp_untrash_post($post->ID);return $result?rest_ensure_response($this->document(get_post($post->ID))):new WP_Error('restore_failed','Song could not be restored.',['status'=>500]); }
 }
 new Elroi_Tunes_Publisher();
