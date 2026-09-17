@@ -45,18 +45,22 @@ function lyricText(song: Song) {
     )
     .join("\n\n");
 }
-function parseLyricText(value: string) {
+function parseLyricText(value: string, current: Song["lyrics"] = []) {
   const chunks = value
     .split(/\n\s*\n/)
     .map((chunk) => chunk.trim())
     .filter(Boolean);
   return chunks.map((chunk, index) => {
     const match = chunk.match(/^\[([^\]]+)\]\s*\n?([\s\S]*)$/);
+    const body = match?.[2] || chunk;
+    const [original, ...romanParts] = body.split(/\n--- Roman ---\n/);
     return {
+      ...(current[index]?.id ? { id: current[index].id } : {}),
       label: match?.[1]?.trim() || `Section ${index + 1}`,
-      original: (match?.[2] || chunk).trim(),
+      original: original.trim(),
+      ...(romanParts.length ? { roman: romanParts.join("\n--- Roman ---\n").trim() } : {}),
     };
-  });
+  }).filter((section) => section.original || section.roman);
 }
 
 export function UploadSettingsCenter() {
@@ -75,6 +79,7 @@ export function UploadSettingsCenter() {
     [cropZoom, setCropZoom] = useState(1),
     [cropOffset, setCropOffset] = useState({ x: 0, y: 0 }),
     [selectedSong, setSelectedSong] = useState<Song | null>(null),
+    [lyricsDirty, setLyricsDirty] = useState(false),
     [linkArtist, setLinkArtist] = useState<Artist | null>(null),
     [songForm, setSongForm] = useState({
       title: "",
@@ -330,6 +335,7 @@ export function UploadSettingsCenter() {
   }
   function editSong(song: Song) {
     setSelectedSong(song);
+    setLyricsDirty(false);
     setSongForm({
       title: song.title,
       artist: song.artist,
@@ -369,35 +375,40 @@ export function UploadSettingsCenter() {
         .split(",")
         .map((artist) => artist.trim())
         .filter(Boolean);
+      const patch = {
+        ...songForm,
+        ...(lyricsDirty
+          ? { lyrics: parseLyricText(songForm.lyrics, selectedSong.lyrics) }
+          : {}),
+        artist: selectedArtists[0] || "",
+        artists: selectedArtists,
+        artistIds: songForm.artistIds,
+        alternateTitles: songForm.alternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
+        romanAlternateTitles: songForm.romanAlternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
+        genres: songForm.genres,
+        categories: songForm.categories,
+        themes: songForm.themes,
+        occasions: songForm.occasions,
+        worshipTeam: songForm.worshipTeam,
+        releaseYear: songForm.releaseYear,
+        songKey: songForm.songKey,
+        tempo: songForm.tempo,
+        seo: { title: songForm.seoTitle, description: songForm.seoDescription },
+        lastReviewedAt: songForm.lastReviewedAt,
+        id: selectedSong.id,
+        revision: selectedSong.revision,
+      };
       const response = await fetch("/api/upload/songs", {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          ...songForm,
-          artist: selectedArtists[0] || "",
-          artists: selectedArtists,
-          artistIds: songForm.artistIds,
-          alternateTitles: songForm.alternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
-          romanAlternateTitles: songForm.romanAlternateTitles.split(",").map((value) => value.trim()).filter(Boolean),
-          genres: songForm.genres,
-          categories: songForm.categories,
-          themes: songForm.themes,
-          occasions: songForm.occasions,
-          worshipTeam: songForm.worshipTeam,
-          releaseYear: songForm.releaseYear,
-          songKey: songForm.songKey,
-          tempo: songForm.tempo,
-          seo: { title: songForm.seoTitle, description: songForm.seoDescription },
-          lastReviewedAt: songForm.lastReviewedAt,
-          id: selectedSong.id,
-          revision: selectedSong.revision,
-        }),
+        body: JSON.stringify(patch),
       });
       const data = await response.json();
       if (!response.ok)
         throw new Error(data.error || "Song could not be updated.");
       await load();
       setSelectedSong(null);
+      setLyricsDirty(false);
       setMessage("Song updated.");
     } catch (error) {
       setMessage(
@@ -772,7 +783,7 @@ export function UploadSettingsCenter() {
                 <div>
                   <span className="eyebrow">SONG DETAILS</span>
                   <h2 id="song-editor-title">Edit song</h2>
-                  <p>Update the details without changing the lyrics.</p>
+                  <p>Update song details, or deliberately repair its lyrics.</p>
                 </div>
                 <button type="button" className="uploads-modal-close" aria-label="Close song form" onClick={() => setSelectedSong(null)}>×</button>
               </div>
@@ -909,10 +920,25 @@ export function UploadSettingsCenter() {
                   }
                 />
               </label>
-              <p className="uploads-readonly-note">
-                Lyrics are preserved during song updates. Edit SEO, artist, and
-                song details here.
-              </p>
+              <details className="uploads-advanced-fields">
+                <summary>Repair lyrics</summary>
+                <p className="uploads-readonly-note">
+                  Lyrics are sent only after you edit this field. Keep section
+                  headings in square brackets and use <code>--- Roman ---</code>
+                  between original and Roman lyrics.
+                </p>
+                <label className="uploads-field-wide">
+                  Lyrics
+                  <textarea
+                    rows={18}
+                    value={songForm.lyrics}
+                    onChange={(event) => {
+                      setLyricsDirty(true);
+                      setSongForm({ ...songForm, lyrics: event.target.value });
+                    }}
+                  />
+                </label>
+              </details>
               <div>
                 <button
                   className="secondary-button"
