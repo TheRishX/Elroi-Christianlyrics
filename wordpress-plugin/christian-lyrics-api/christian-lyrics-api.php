@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Christian Lyrics API
  * Description: Easy song publishing, automatic Hindi/Nepali Roman transliteration, normalized lyrics REST API, search, ads and revalidation.
- * Version: 0.2.0
+ * Version: 0.3.0
  */
 if (!defined('ABSPATH')) exit;
 
