@@ -145,7 +145,7 @@ new Christian_Lyrics_API();
 
 /* OTT compatibility routes. Kept here as well as the standalone OTT plugin so
  * existing installations receive video CRUD without a second plugin dependency. */
-if (!class_exists('Christian_Lyrics_Video_OTT')) {
+if (!class_exists('Christian_Lyrics_Video_OTT') && !class_exists('Elroi_Video_OTT')) {
 final class Christian_Lyrics_Video_OTT {
   private $token;
   public function __construct() { $this->token=getenv('WORDPRESS_API_TOKEN')?:get_option('elroi_todo_api_token',''); add_action('init',[$this,'types']); add_action('rest_api_init',[$this,'routes']); }

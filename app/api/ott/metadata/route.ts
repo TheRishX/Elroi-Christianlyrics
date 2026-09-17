@@ -15,6 +15,6 @@ export async function POST(request: Request) {
     if (!item) return NextResponse.json({ error: "This YouTube video was not found or is private." }, { status: 404 });
     if (item.status?.privacyStatus !== "public" || !item.status?.embeddable) return NextResponse.json({ error: "This YouTube video is not public and embeddable." }, { status: 400 });
     const thumbnails = item.snippet?.thumbnails || {}; const thumbnailUrl = thumbnails.maxres?.url || thumbnails.standard?.url || thumbnails.high?.url || thumbnails.medium?.url || thumbnails.default?.url || `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`;
-    return NextResponse.json({ youtubeId, title: item.snippet?.title || "", description: item.snippet?.description || "", thumbnailUrl, channelName: item.snippet?.channelTitle || "", channelId: item.snippet?.channelId || "", duration: isoDuration(item.contentDetails?.duration || ""), sourcePublishedAt: item.snippet?.publishedAt || "", embeddable: true, privacyStatus: "public" });
+    return NextResponse.json({ youtubeId, title: item.snippet?.title || "", description: item.snippet?.description || "", thumbnailUrl, channelName: item.snippet?.channelTitle || "", channelId: item.snippet?.channelId || "", duration: isoDuration(item.contentDetails?.duration || ""), sourcePublishedAt: item.snippet?.publishedAt || "", embeddable: true, privacyStatus: "public", sourceHealth: "ready" });
   } catch (error) { return NextResponse.json({ error: error instanceof Error ? error.message : "YouTube metadata could not be loaded." }, { status: 502 }); }
 }

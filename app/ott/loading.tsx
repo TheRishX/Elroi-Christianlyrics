@@ -1,0 +1,1 @@
+export default function OttLoading() { return <main className="ott-loading" aria-live="polite"><span className="ott-loading-cross" aria-hidden="true">✝</span><strong>Entering Elroi OTT</strong><p>Preparing a moment of hope…</p></main>; }

@@ -130,7 +130,7 @@ export async function getVideos(options: { category?: string; featured?: boolean
     if (options.category) url.searchParams.set("category", options.category);
     if (options.featured) url.searchParams.set("featured", "1");
     if (options.language) url.searchParams.set("language", options.language);
-    if (options.type) url.searchParams.set("type", options.type);
+    if (options.type) url.searchParams.set("contentType", options.type);
     if (options.reels) url.searchParams.set("reels", "1");
     if (options.q) url.searchParams.set("q", options.q);
     if (options.limit) url.searchParams.set("limit", String(options.limit));

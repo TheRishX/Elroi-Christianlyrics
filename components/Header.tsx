@@ -1,8 +1,9 @@
 "use client";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { ArrowLeft, Bookmark, BookOpen, House, Languages, Search, Sparkles, UsersRound, Video } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { clearOttGuest } from "@/lib/ott-guest";
+import { ArrowLeft, Bookmark, BookOpen, House, ListVideo, Menu, Search, Sparkles, UsersRound, Video, X } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/artists", label: "Artists", icon: UsersRound },
@@ -12,8 +13,8 @@ const items = [
 const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
 function OttPortalLink({ children, className = "" }: { children: React.ReactNode; className?: string }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
-  const enter = () => { if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 900); };
-  return <>{entering && <div className="ott-portal" role="status"><span>✦</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>}<button type="button" className={className} onClick={enter}>{children}</button></>;
+  const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
+  return <>{entering && <div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>}<button type="button" className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
 }
 export function DesktopMenu() {
   const path = usePathname();
@@ -47,7 +48,19 @@ export function DesktopMenu() {
 export function Header() {
   const path = usePathname();
   const router = useRouter();
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [searchOpen, setSearchOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const searchInput = useRef<HTMLInputElement>(null);
+  const moreClose = useRef<HTMLButtonElement>(null);
+  const moreTrigger = useRef<HTMLButtonElement | null>(null);
+  const closeMore = () => { setMoreOpen(false); window.setTimeout(() => moreTrigger.current?.focus(), 0); };
+  const openMore = (event: React.MouseEvent<HTMLButtonElement>) => { moreTrigger.current = event.currentTarget; setMoreOpen(true); };
   const ottMode = path.startsWith("/ott") && !path.startsWith("/ott/settings");
+  useEffect(() => { if (!moreOpen) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeMore(); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [moreOpen]);
+  useEffect(() => { setMoreOpen(false); setSearchOpen(false); }, [path]);
+  useEffect(() => { if (searchOpen) searchInput.current?.focus(); }, [searchOpen]);
+  useEffect(() => { if (moreOpen) moreClose.current?.focus(); }, [moreOpen]);
   useEffect(() => {
     document.body.classList.toggle("upload-mode", path === "/upload");
     document.body.classList.toggle("ott-mode", ottMode);
@@ -59,8 +72,9 @@ export function Header() {
       : path === href;
   if (ottMode) return <>
     <a className="skip-link" href="#main">Skip to content</a>
-    <div className="ott-chrome"><Link href="/" className="ott-return"><ArrowLeft size={17} /> Return to Elroi Lyrics</Link><Link href="/ott" className="ott-brand"><Sparkles size={17} /> Elroi OTT</Link><nav aria-label="Elroi OTT navigation"><Link href="/ott">Home</Link><Link href="/ott/explore">Explore</Link><Link href="/ott/reels">Reels</Link><Link href="/ott/search"><Search size={16} /> Search</Link><button type="button" onClick={() => window.dispatchEvent(new Event("elroi-ott-language"))}><Languages size={16} /> Languages</button></nav></div>
-    <nav className="ott-bottom-nav" aria-label="Elroi OTT mobile navigation"><Link href="/ott" aria-current={path === "/ott" ? "page" : undefined}><House size={21} /><span>Home</span></Link><Link href="/ott/explore" aria-current={path === "/ott/explore" ? "page" : undefined}><Video size={21} /><span>Explore</span></Link><Link href="/ott/reels" aria-current={path === "/ott/reels" ? "page" : undefined}><Sparkles size={21} /><span>Reels</span></Link><Link href="/ott/search" aria-current={path === "/ott/search" ? "page" : undefined}><Search size={21} /><span>Search</span></Link><button type="button" onClick={() => window.dispatchEvent(new Event("elroi-ott-language"))}><Languages size={21} /><span>Language</span></button></nav>
+    <div className="ott-chrome"><Link href="/" className="ott-return"><ArrowLeft size={18} /> <span>Return to Elroi Lyrics</span></Link><Link href="/ott" className="ott-brand"><span aria-hidden="true">✝</span> Elroi OTT</Link><nav aria-label="Elroi OTT navigation"><Link href="/ott" aria-current={path === "/ott" ? "page" : undefined}>Home</Link><Link href="/ott/explore" aria-current={path === "/ott/explore" ? "page" : undefined}>Explore</Link><Link href="/ott/reels" aria-current={path === "/ott/reels" ? "page" : undefined}>Reels</Link><Link href="/ott/my-list" aria-current={path === "/ott/my-list" ? "page" : undefined}>My List</Link></nav><button type="button" className="ott-search-trigger" aria-label="Search Elroi OTT" aria-expanded={searchOpen} onClick={() => setSearchOpen(true)}><Search size={23} /></button>{searchOpen && <form className="ott-header-search" role="search" onSubmit={(event) => { event.preventDefault(); router.push(`/ott/search?q=${encodeURIComponent(searchText.trim())}`); setSearchOpen(false); }}><Search size={22} aria-hidden="true" /><input ref={searchInput} type="search" value={searchText} onChange={(event) => setSearchText(event.target.value)} onKeyDown={(event) => { if (event.key === "Escape") setSearchOpen(false); }} placeholder="Search stories of faith…" aria-label="Search Elroi OTT" /><button type="submit">Search</button><button type="button" onClick={() => setSearchOpen(false)} aria-label="Close search"><X size={20} /></button></form>}</div>
+    <nav className="ott-bottom-nav" aria-label="Elroi OTT mobile navigation"><Link href="/ott" aria-current={path === "/ott" ? "page" : undefined}><House size={21} /><span>Home</span></Link><Link href="/ott/explore" aria-current={path === "/ott/explore" || path === "/ott/search" ? "page" : undefined}><Video size={21} /><span>Explore</span></Link><Link href="/ott/reels" aria-current={path === "/ott/reels" ? "page" : undefined}><Sparkles size={21} /><span>Reels</span></Link><Link href="/ott/my-list" aria-current={path === "/ott/my-list" ? "page" : undefined}><ListVideo size={21} /><span>My List</span></Link><button type="button" onClick={openMore}><Menu size={21} /><span>More</span></button></nav>
+    {moreOpen && <div className="ott-sheet-backdrop" onMouseDown={closeMore}><aside className="ott-more-sheet" role="dialog" aria-modal="true" aria-label="More Elroi OTT options" onMouseDown={(event) => event.stopPropagation()} onKeyDown={(event) => { if (event.key !== "Tab") return; const buttons = event.currentTarget.querySelectorAll<HTMLElement>("button,a"); const first = buttons[0], last = buttons[buttons.length - 1]; if (event.shiftKey && document.activeElement === first) { event.preventDefault(); last?.focus(); } else if (!event.shiftKey && document.activeElement === last) { event.preventDefault(); first?.focus(); } }}><button ref={moreClose} className="ott-sheet-close" type="button" onClick={closeMore} aria-label="Close menu"><X /></button><span className="ott-kicker">ELROI OTT</span><h2>Your journey</h2><Link href="/" onClick={() => setMoreOpen(false)}>Return to Elroi Lyrics</Link><button type="button" onClick={() => { clearOttGuest(); setMoreOpen(false); }}>Clear local journey data</button><p>New stories of faith, across English, Nepali, and Hindi.</p></aside></div>}
   </>;
   return (
     <>

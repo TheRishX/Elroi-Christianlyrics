@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Header } from "@/components/Header";
 import { PWARegister } from "@/components/PWARegister";
 import "./globals.css";
+import "./ott/ott.css";
 export const metadata: Metadata = {
   metadataBase: new URL((process.env.NEXT_PUBLIC_SITE_URL || "https://elroitunes.com").replace(/\/$/, "")),
   title: {

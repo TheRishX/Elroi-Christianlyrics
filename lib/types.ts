@@ -73,6 +73,8 @@ export type Video = {
   sourcePublishedAt?: string;
   embeddable?: boolean;
   privacyStatus?: string;
+  sourceHealth?: "ready" | "unavailable" | "unknown";
+  curator?: string;
   status?: "publish" | "draft";
   publishedAt?: string;
   updatedAt?: string;
