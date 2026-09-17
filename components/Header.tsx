@@ -60,6 +60,7 @@ export function Header() {
   if (ottMode) return <>
     <a className="skip-link" href="#main">Skip to content</a>
     <div className="ott-chrome"><Link href="/" className="ott-return"><ArrowLeft size={17} /> Return to Elroi Lyrics</Link><Link href="/ott" className="ott-brand"><Sparkles size={17} /> Elroi OTT</Link><nav aria-label="Elroi OTT navigation"><Link href="/ott">Home</Link><Link href="/ott/explore">Explore</Link><Link href="/ott/reels">Reels</Link><Link href="/ott/search"><Search size={16} /> Search</Link><button type="button" onClick={() => window.dispatchEvent(new Event("elroi-ott-language"))}><Languages size={16} /> Languages</button></nav></div>
+    <nav className="ott-bottom-nav" aria-label="Elroi OTT mobile navigation"><Link href="/ott" aria-current={path === "/ott" ? "page" : undefined}><House size={21} /><span>Home</span></Link><Link href="/ott/explore" aria-current={path === "/ott/explore" ? "page" : undefined}><Video size={21} /><span>Explore</span></Link><Link href="/ott/reels" aria-current={path === "/ott/reels" ? "page" : undefined}><Sparkles size={21} /><span>Reels</span></Link><Link href="/ott/search" aria-current={path === "/ott/search" ? "page" : undefined}><Search size={21} /><span>Search</span></Link><button type="button" onClick={() => window.dispatchEvent(new Event("elroi-ott-language"))}><Languages size={21} /><span>Language</span></button></nav>
   </>;
   return (
     <>
