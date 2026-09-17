@@ -140,7 +140,10 @@ export function UploadSettingsCenter() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ email, password }),
     });
-    if (!response.ok) return setMessage("Invalid email or password.");
+    if (!response.ok) {
+      const payload = await response.json().catch(() => ({}));
+      return setMessage(payload.error || "Unable to sign in. Please try again.");
+    }
     setLogged(true);
     await load();
   }

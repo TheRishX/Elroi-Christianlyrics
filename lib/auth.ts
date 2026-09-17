@@ -12,6 +12,13 @@ export function hasPasswordConfiguration() {
   const [scheme, salt, digest] = (process.env.ADMIN_PASSWORD_HASH || "").split(":");
   return scheme === "scrypt" && Boolean(salt) && Boolean(digest);
 }
+export function missingPortalConfiguration() {
+  const missing: string[] = [];
+  if (!process.env.ADMIN_EMAIL?.trim()) missing.push("ADMIN_EMAIL");
+  if (!hasPasswordConfiguration()) missing.push("ADMIN_PASSWORD (or ADMIN_PASSWORD_HASH)");
+  if (!hasSessionConfiguration()) missing.push("SESSION_SECRET (at least 32 characters)");
+  return missing;
+}
 export function verifyPassword(password: string) {
   // Trim environment-only whitespace: it is common when a value is pasted into
   // a dashboard. The password typed in the form remains exact.

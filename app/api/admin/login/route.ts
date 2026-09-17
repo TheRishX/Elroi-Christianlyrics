@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { cookieName, createSession, hasPasswordConfiguration, hasSessionConfiguration, verifyPassword } from "@/lib/auth";
+import { cookieName, createSession, missingPortalConfiguration, verifyPassword } from "@/lib/auth";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -14,9 +14,13 @@ export async function POST(request: Request) {
   const now = Date.now(), entry = attempts.get(key);
   if (entry && entry.resetAt > now && entry.count >= 5) return NextResponse.json({ error: "Too many login attempts. Try again later." }, { status: 429 });
 
-  if (!expected || !hasPasswordConfiguration() || !hasSessionConfiguration()) {
+  const missingConfiguration = missingPortalConfiguration();
+  if (missingConfiguration.length) {
     return NextResponse.json(
-      { error: "Portal login is not configured. Add ADMIN_PASSWORD in Vercel, then redeploy." },
+      {
+        error: `Portal login is not configured. Add ${missingConfiguration.join(", ")} in Vercel, then redeploy.`,
+        code: "PORTAL_NOT_CONFIGURED",
+      },
       { status: 503 },
     );
   }
