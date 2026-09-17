@@ -1080,6 +1080,49 @@ export function UploadSettingsCenter() {
           )}
         </section>
       )}
+      {deleteRequest && (
+        <div
+          className="uploads-confirm-backdrop"
+          role="presentation"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) setDeleteRequest(null);
+          }}
+        >
+          <div
+            className="uploads-confirm-dialog"
+            role="alertdialog"
+            aria-modal="true"
+            aria-labelledby="delete-dialog-title"
+            aria-describedby="delete-dialog-description"
+          >
+            <div className="uploads-confirm-icon" aria-hidden="true"><Trash2 size={20} /></div>
+            <span className="eyebrow">CONFIRM ACTION</span>
+            <h2 id="delete-dialog-title">
+              {deleteRequest.kind === "song" ? "Move song to trash?" : "Delete artist profile?"}
+            </h2>
+            <p id="delete-dialog-description">
+              {deleteRequest.kind === "song"
+                ? `“${deleteRequest.item.title}” will disappear from this list. You can restore it later from WordPress.`
+                : `“${deleteRequest.item.name}” will be removed and its credit will be cleared from connected songs.`}
+            </p>
+            <div className="uploads-confirm-actions">
+              <button type="button" className="secondary-button" onClick={() => setDeleteRequest(null)}>Cancel</button>
+              <button
+                type="button"
+                className="danger-button uploads-confirm-delete"
+                onClick={async () => {
+                  const request = deleteRequest;
+                  setDeleteRequest(null);
+                  if (request.kind === "song") await performDeleteSong(request.item);
+                  else await performDeleteArtist(request.item);
+                }}
+              >
+                {deleteRequest.kind === "song" ? "Move to trash" : "Delete artist"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

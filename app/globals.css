@@ -4609,6 +4609,66 @@ body.upload-mode .upload-page {
   border-radius: 26px;
   box-shadow: 0 28px 90px rgba(20, 35, 22, 0.24);
 }
+.uploads-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  background: rgba(35, 47, 38, .38);
+  backdrop-filter: blur(8px);
+}
+.uploads-confirm-dialog {
+  width: min(100%, 430px);
+  padding: 28px;
+  border: 1px solid #e5e9df;
+  border-radius: 22px;
+  background: #fffefa;
+  box-shadow: 0 24px 80px rgba(26, 42, 29, .22);
+}
+.uploads-confirm-icon {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  margin-bottom: 18px;
+  border-radius: 13px;
+  color: #a34432;
+  background: #fff0ed;
+}
+.uploads-confirm-dialog h2 {
+  margin: 8px 0 9px;
+  color: var(--ink);
+  font-size: 25px;
+  font-weight: 550;
+  letter-spacing: -.5px;
+}
+.uploads-confirm-dialog p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 14px;
+  line-height: 1.6;
+}
+.uploads-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 9px;
+  margin-top: 24px;
+}
+.uploads-confirm-actions button {
+  width: auto;
+  min-height: 42px;
+  padding: 10px 15px;
+}
+.uploads-confirm-delete {
+  border: 0;
+  border-radius: 9px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+}
 .uploads-song-modal .uploads-form-grid {
   gap: 16px;
 }
