@@ -1,5 +1,16 @@
 export type Language = "hindi" | "nepali" | "english";
-export type LyricSection = { id?: string; label: string; original: string; roman?: string };
+/**
+ * Lyrics are stored as structured lines. The optional string fields keep old
+ * WordPress records readable while they are migrated at the API boundary.
+ */
+export type LyricSection = {
+  id?: string;
+  label: string;
+  original?: string;
+  roman?: string;
+  originalLines?: string[];
+  romanLines?: string[];
+};
 export type Song = {
   id: number;
   slug: string;

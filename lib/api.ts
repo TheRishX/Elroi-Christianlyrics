@@ -1,6 +1,6 @@
 import { songs as mockSongs } from "./mock-data";
 import { AdSettings, Artist, Language, SearchResult, Song, SongSuggestion, Video, VideoCategory } from "./types";
-import { normalizeLyricText } from "./lyrics";
+import { lyricLines, normalizeLyricText } from "./lyrics";
 const base = process.env.WORDPRESS_API_URL;
 function listFrom(data: unknown): Song[] {
   if (Array.isArray(data)) return data as Song[];
@@ -34,7 +34,15 @@ function repairDevanagari(value: string, roman = "") {
   }).join("\n");
 }
 function repairSong(song: Song): Song {
-  return { ...song, lyrics: (song.lyrics || []).map(section => ({ ...section, original: repairDevanagari(normalizeLyricText(section.original || ""), normalizeLyricText(section.roman || "")), roman: section.roman ? normalizeLyricText(section.roman) : section.roman })) };
+  return { ...song, lyrics: (song.lyrics || []).map(section => {
+    const originalLines = lyricLines(section);
+    const romanLines = lyricLines(section, true);
+    return {
+      ...section,
+      originalLines: originalLines.map((line, index) => repairDevanagari(line, romanLines[index] || "").normalize("NFC")),
+      romanLines,
+    };
+  }) };
 }
 export async function getSongs(language?: Language, fresh = false): Promise<Song[]> {
   if (!base)
@@ -176,8 +184,8 @@ function rank(song: Song, q: string): SearchResult | undefined {
     ...(song.alternateTitles || []),
     ...(song.romanAlternateTitles || []),
   ].flatMap(romanVariants);
-  const lyrics = song.lyrics.map((l) => l.original).join(" ");
-  const rlyrics = song.lyrics.map((l) => l.roman || "").join(" ");
+  const lyrics = song.lyrics.map((l) => lyricLines(l).join(" ")).join(" ");
+  const rlyrics = song.lyrics.map((l) => lyricLines(l, true).join(" ")).join(" ");
   let matchType: SearchResult["matchType"];
   let score = 0;
   let matchText = "";

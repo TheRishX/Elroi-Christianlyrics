@@ -1,10 +1,10 @@
 "use client";
 import { useEffect, useState } from "react";
 import { Song } from "@/lib/types";
-import { normalizeLyricText } from "@/lib/lyrics";
+import { lyricLines, normalizeLyricText } from "@/lib/lyrics";
 import { BookmarkButton } from "./BookmarkButton";
 type Mode = "side" | "original" | "roman";
-type DisplaySection = { id?: string; label: string; original: string; roman?: string };
+type DisplaySection = { id?: string; label: string; original: string[]; roman: string[] };
 
 // Bracket tags are the current format. The bare-heading branch is only a
 // migration reader for older records that were saved before tags were kept.
@@ -56,14 +56,14 @@ function alignNativeSections(
   // version contains explicit Verse/Chorus headings. Use the Roman section
   // line counts to keep every stanza visible instead of mapping only index 0.
   if (native.length !== 1 || roman.length <= 1) return native;
-  const lines = native[0].original.split("\n");
+    const lines = native[0].original;
   let offset = 0;
   return roman.map((section) => {
-    const count = Math.max(1, section.original.split("\n").length);
-    const original = lines.slice(offset, offset + count).join("\n").trim();
+    const count = Math.max(1, section.original.length);
+    const original = lines.slice(offset, offset + count);
     offset += count;
-    return { label: section.label, original };
-  }).filter((section) => section.original);
+    return { label: section.label, original, roman: [] };
+  }).filter((section) => section.original.length);
 }
 
 function splitSections(value: string, fallback: string): DisplaySection[] {
@@ -72,13 +72,14 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
   HEADING.lastIndex = 0;
   const matches = [...text.matchAll(HEADING)];
   const fallbackLabel = fallback;
-  if (!matches.length) return [{ label: fallbackLabel, original: text }];
+  if (!matches.length) return [{ label: fallbackLabel, original: text.split("\n"), roman: [] }];
   const result: DisplaySection[] = [];
   const firstIndex = matches[0].index ?? 0;
   if (firstIndex > 0)
     result.push({
       label: fallbackLabel,
-      original: text.slice(0, firstIndex).trim(),
+      original: text.slice(0, firstIndex).trim().split("\n"),
+      roman: [],
     });
   matches.forEach((match, index) => {
     const start = (match.index ?? 0) + match[0].length;
@@ -88,19 +89,27 @@ function splitSections(value: string, fallback: string): DisplaySection[] {
         : text.length;
     result.push({
       label: normalizeLabel(match[1] || match[2] || fallbackLabel),
-      original: text.slice(start, end).trim(),
+      original: text.slice(start, end).trim().split("\n"),
+      roman: [],
     });
   });
-  return result.filter((section) => section.original);
+  return result.filter((section) => section.original.length);
 }
 
-function getDisplaySections(song: Song): DisplaySection[] { return song.lyrics.map((section) => ({ id: section.id, label: section.label, original: section.original, roman: section.roman })); }
+function getDisplaySections(song: Song): DisplaySection[] {
+  return song.lyrics.map((section) => ({
+    id: section.id,
+    label: section.label,
+    original: lyricLines(section),
+    roman: lyricLines(section, true),
+  }));
+}
 
 export function LyricReader({ song }: { song: Song }) {
   const displaySections = getDisplaySections(song);
   const hasRoman =
     song.language !== "english" &&
-    displaySections.some((section) => section.roman);
+    displaySections.some((section) => section.roman.length);
   const [mode, setMode] = useState<Mode>("original");
   const [size, setSize] = useState(1);
   const [notice, setNotice] = useState("");
@@ -206,7 +215,9 @@ export function LyricReader({ song }: { song: Song }) {
                       : "en"
                 }
               >
-                {section.original}
+                {section.original.map((line, index) => (
+                  <span key={index}>{line}{index < section.original.length - 1 && <br />}</span>
+                ))}
               </p>
               {hasRoman && (
                 <p
@@ -214,7 +225,9 @@ export function LyricReader({ song }: { song: Song }) {
                   hidden={mode === "original"}
                   lang={song.language === "hindi" ? "hi-Latn" : "ne-Latn"}
                 >
-                  {section.roman}
+                  {section.roman.map((line, index) => (
+                    <span key={index}>{line}{index < section.roman.length - 1 && <br />}</span>
+                  ))}
                 </p>
               )}
             </div>

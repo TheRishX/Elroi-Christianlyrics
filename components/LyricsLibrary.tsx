@@ -2,6 +2,7 @@
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { Song } from "@/lib/types";
+import { lyricSearchText } from "@/lib/lyrics";
 import { PaginatedSongGrid } from "@/components/PaginatedSongGrid";
 
 function searchableText(song: Song) {
@@ -13,10 +14,7 @@ function searchableText(song: Song) {
     song.worshipTeam,
     ...(song.alternateTitles || []),
     ...(song.romanAlternateTitles || []),
-    ...(song.lyrics || []).flatMap((section) => [
-      section.original,
-      section.roman,
-    ]),
+    ...(song.lyrics || []).map(lyricSearchText),
   ]
     .filter(Boolean)
     .join(" ")

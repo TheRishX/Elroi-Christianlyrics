@@ -13,6 +13,7 @@ import {
   Upload,
 } from "lucide-react";
 import { Song } from "@/lib/types";
+import { lyricText } from "@/lib/lyrics";
 
 type TaskStatus = "planned" | "in-progress" | "ready" | "uploaded";
 type Language = "hindi" | "nepali" | "english";
@@ -92,7 +93,8 @@ function possibleUploaded(title: string, songs: Song[]) {
 function songHint(song: Song) {
   const text =
     song.excerpt ||
-    song.lyrics?.find((section) => section.original)?.original ||
+    song.lyrics?.find((section) => lyricText(section)) &&
+    lyricText(song.lyrics.find((section) => lyricText(section))!) ||
     "Published lyric in your live library.";
   return (
     text.replace(/\s+/g, " ").trim().slice(0, 125) +

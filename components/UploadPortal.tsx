@@ -83,10 +83,10 @@ function parseLyrics(original: string, roman: string): LyricSection[] {
         native[index]?.label ||
         romanRows[index]?.label ||
         `Section ${index + 1}`,
-      original: native[index]?.text || "",
-      roman: romanRows[index]?.text || "",
+      originalLines: native[index]?.text ? native[index].text.split("\n") : [],
+      romanLines: romanRows[index]?.text ? romanRows[index].text.split("\n") : [],
     }),
-  ).filter((section) => section.original || section.roman);
+  ).filter((section) => section.originalLines.length || section.romanLines.length);
 }
 function splitTitles(value: string) {
   return value

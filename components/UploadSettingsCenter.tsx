@@ -1,4 +1,6 @@
 "use client";
+import Link from "next/link";
+import { Eye } from "lucide-react";
 import {
   ChangeEvent,
   PointerEvent,
@@ -8,6 +10,7 @@ import {
   useState,
 } from "react";
 import { Artist, Song } from "@/lib/types";
+import { lyricText as sectionLyricText, textToLyricLines } from "@/lib/lyrics";
 import { ArtistPicker } from "@/components/UploadPortal";
 
 function slug(value: string) {
@@ -37,15 +40,15 @@ function readImage(
   reader.onload = () => setValue(String(reader.result || ""));
   reader.readAsDataURL(file);
 }
-function lyricText(song: Song) {
+function lyricText(song: Song, roman = false) {
   return (song.lyrics || [])
     .map(
       (section) =>
-        `[${section.label}]\n${section.original}${section.roman ? `\n--- Roman ---\n${section.roman}` : ""}`,
+        `[${section.label}]\n${sectionLyricText(section, roman)}`,
     )
     .join("\n\n");
 }
-function parseLyricText(value: string, current: Song["lyrics"] = []) {
+function parseLyricSections(value: string, current: Song["lyrics"] = []) {
   const chunks = value
     .split(/\n\s*\n/)
     .map((chunk) => chunk.trim())
@@ -53,14 +56,28 @@ function parseLyricText(value: string, current: Song["lyrics"] = []) {
   return chunks.map((chunk, index) => {
     const match = chunk.match(/^\[([^\]]+)\]\s*\n?([\s\S]*)$/);
     const body = match?.[2] || chunk;
-    const [original, ...romanParts] = body.split(/\n--- Roman ---\n/);
     return {
       ...(current[index]?.id ? { id: current[index].id } : {}),
       label: match?.[1]?.trim() || `Section ${index + 1}`,
-      original: original.trim(),
-      ...(romanParts.length ? { roman: romanParts.join("\n--- Roman ---\n").trim() } : {}),
+      originalLines: textToLyricLines(body.trim()),
     };
-  }).filter((section) => section.original || section.roman);
+  }).filter((section) => section.originalLines.length);
+}
+function parseLyricPair(
+  originalValue: string,
+  romanValue: string,
+  current: Song["lyrics"] = [],
+) {
+  const original = parseLyricSections(originalValue, current);
+  const roman = parseLyricSections(romanValue, current);
+  return Array.from({ length: Math.max(original.length, roman.length) }, (_, index) => ({
+    ...(current[index]?.id ? { id: current[index].id } : {}),
+    label: original[index]?.label || roman[index]?.label || current[index]?.label || `Section ${index + 1}`,
+    originalLines: original[index]?.originalLines || [],
+    ...(roman[index]?.originalLines?.length
+      ? { romanLines: roman[index].originalLines }
+      : {}),
+  })).filter((section) => section.originalLines.length || section.romanLines?.length);
 }
 
 export function UploadSettingsCenter() {
@@ -108,6 +125,7 @@ export function UploadSettingsCenter() {
       lyricist: "",
       album: "",
       lyrics: "",
+      romanLyrics: "",
     }),
     [loading, setLoading] = useState(true),
     [saving, setSaving] = useState(false),
@@ -366,6 +384,7 @@ export function UploadSettingsCenter() {
       lyricist: song.lyricist || "",
       album: song.album || "",
       lyrics: lyricText(song),
+      romanLyrics: lyricText(song, true),
     });
     setMessage("");
   }
@@ -378,10 +397,17 @@ export function UploadSettingsCenter() {
         .split(",")
         .map((artist) => artist.trim())
         .filter(Boolean);
+      const { romanLyrics: _romanLyrics, ...songFields } = songForm;
       const patch = {
-        ...songForm,
+        ...songFields,
         ...(lyricsDirty
-          ? { lyrics: parseLyricText(songForm.lyrics, selectedSong.lyrics) }
+          ? {
+              lyrics: parseLyricPair(
+                songForm.lyrics,
+                songForm.romanLyrics,
+                selectedSong.lyrics,
+              ),
+            }
           : {}),
         artist: selectedArtists[0] || "",
         artists: selectedArtists,
@@ -763,6 +789,16 @@ export function UploadSettingsCenter() {
                     {song.artist} · {song.language}
                   </span>
                 </div>
+                <Link
+                  className="uploads-song-view"
+                  href={`/${song.language}/${song.slug}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  aria-label={`View ${song.title}`}
+                  title="View song"
+                >
+                  <Eye size={16} aria-hidden="true" />
+                </Link>
                 <button onClick={() => editSong(song)}>Edit</button>
                 <button
                   className="danger-text"
@@ -923,24 +959,42 @@ export function UploadSettingsCenter() {
                   }
                 />
               </label>
-              <details className="uploads-advanced-fields">
-                <summary>Repair lyrics</summary>
+              <details className="uploads-advanced-fields lyrics-editor-panel">
+                <summary>
+                  <span>Lyrics editor</span>
+                  <span className="lyrics-editor-status">
+                    {lyricsDirty ? "Unsaved changes" : "Optional"}
+                  </span>
+                </summary>
                 <p className="uploads-readonly-note">
-                  Lyrics are sent only after you edit this field. Keep section
-                  headings in square brackets and use <code>--- Roman ---</code>
-                  between original and Roman lyrics.
+                  Keep the same section headings in both fields, for example
+                  <code>[Verse 1]</code>. Each Hindi section is saved together
+                  with its matching Hinglish section.
                 </p>
-                <label className="uploads-field-wide">
-                  Lyrics
-                  <textarea
-                    rows={18}
-                    value={songForm.lyrics}
-                    onChange={(event) => {
-                      setLyricsDirty(true);
-                      setSongForm({ ...songForm, lyrics: event.target.value });
-                    }}
-                  />
-                </label>
+                <div className="lyrics-editor-grid">
+                  <label>
+                    Hindi / Original lyrics
+                    <textarea
+                      rows={18}
+                      value={songForm.lyrics}
+                      onChange={(event) => {
+                        setLyricsDirty(true);
+                        setSongForm({ ...songForm, lyrics: event.target.value });
+                      }}
+                    />
+                  </label>
+                  <label>
+                    Hinglish / Roman lyrics
+                    <textarea
+                      rows={18}
+                      value={songForm.romanLyrics}
+                      onChange={(event) => {
+                        setLyricsDirty(true);
+                        setSongForm({ ...songForm, romanLyrics: event.target.value });
+                      }}
+                    />
+                  </label>
+                </div>
               </details>
               <div>
                 <button

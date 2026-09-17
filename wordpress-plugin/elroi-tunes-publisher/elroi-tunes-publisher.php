@@ -2,7 +2,7 @@
 /**
  * Plugin Name: Elroi Tunes Publisher
  * Description: Canonical, authenticated song persistence API for Elroi Tunes.
- * Version: 2.0.0
+ * Version: 2.1.0
  */
 if (!defined('ABSPATH')) exit;
 
@@ -25,8 +25,13 @@ final class Elroi_Tunes_Publisher {
     if (!$provided && preg_match('/^Bearer\s+(.+)$/i', $request->get_header('authorization'), $m)) $provided = $m[1];
     return is_string($provided) && strlen($provided) === strlen($this->token) && hash_equals($this->token, $provided) ? true : new WP_Error('forbidden','Invalid publisher token.',['status'=>403]);
   }
-  public function capabilities() { return rest_ensure_response(['version'=>'2.0.0','schemaVersion'=>2,'actions'=>['create','patch','trash','restore'],'revisionRequired'=>true]); }
+  public function capabilities() { return rest_ensure_response(['version'=>'2.1.0','schemaVersion'=>3,'actions'=>['create','patch','trash','restore'],'revisionRequired'=>true,'lyricsFormat'=>'section-lines']); }
   private function text($value) { return str_replace(["\r\n","\r"], "\n", sanitize_textarea_field((string)$value)); }
+  private function lines($value) {
+    if (is_array($value)) return array_map(function($line){ return $this->text($line); }, array_values($value));
+    $text=$this->text($value);
+    return $text==='' ? [] : explode("\n",$text);
+  }
   private function list_value($value) { if (!is_array($value)) return []; return array_values(array_filter(array_map(function($v){ return sanitize_text_field((string)$v); },$value), 'strlen')); }
   private function encode($value) { $json=wp_json_encode($value,JSON_UNESCAPED_UNICODE); return $json===false ? new WP_Error('encoding_failed','Document could not be encoded.',['status'=>422]) : wp_slash($json); }
   private function decode($id,$key,$required=false) {
@@ -47,9 +52,10 @@ final class Elroi_Tunes_Publisher {
     if (!is_array($value)) return new WP_Error('invalid_lyrics','Lyrics must be a section array.',['status'=>422]);
     $items=[]; foreach($value as $section) {
       if (!is_array($section)) return new WP_Error('invalid_lyrics','Every lyric section must be an object.',['status'=>422]);
-      $original=$this->text($section['original']??''); $roman=$this->text($section['roman']??'');
-      if ($original==='' && $roman==='') continue;
-      $items[]=['id'=>sanitize_text_field($section['id']??wp_generate_uuid4()),'label'=>sanitize_text_field($section['label']??'Section'),'original'=>$original,'roman'=>$roman];
+      $original=$this->lines(array_key_exists('originalLines',$section)?$section['originalLines']:($section['original']??''));
+      $roman=$this->lines(array_key_exists('romanLines',$section)?$section['romanLines']:($section['roman']??''));
+      if (!array_filter($original,'strlen') && !array_filter($roman,'strlen')) continue;
+      $items[]=['id'=>sanitize_text_field($section['id']??wp_generate_uuid4()),'label'=>sanitize_text_field($section['label']??'Section'),'originalLines'=>$original,'romanLines'=>$roman];
     }
     if (!$allow_empty && !$items) return new WP_Error('empty_lyrics','At least one non-empty lyric section is required.',['status'=>422]);
     return $items;
@@ -63,7 +69,7 @@ final class Elroi_Tunes_Publisher {
     return $data;
   }
   private function camel($key) { return preg_replace_callback('/_([a-z])/',function($m){return strtoupper($m[1]);},$key); }
-  private function content($lyrics) { $html=''; foreach($lyrics as $section) $html.='<h3>'.esc_html($section['label']).'</h3><p>'.nl2br(esc_html($section['original'])).'</p>'; return $html; }
+  private function content($lyrics) { $html=''; foreach($lyrics as $section) { $original=implode("\n",$section['originalLines']??[]); $html.='<h3>'.esc_html($section['label']).'</h3><p>'.nl2br(esc_html($original)).'</p>'; } return $html; }
   private function expected_revision($request,$post) {
     $expected=(int)$request->get_header('if-match'); if (!$expected) return new WP_Error('revision_required','If-Match revision is required.',['status'=>400]);
     return $expected===$this->revision($post->ID) ? true : new WP_Error('revision_conflict','Song was changed by another editor.',['status'=>409]);

@@ -2336,6 +2336,24 @@ svg {
   font-weight: 700;
   cursor: pointer;
 }
+.uploads-song-view {
+  display: inline-grid;
+  place-items: center;
+  flex: 0 0 auto;
+  width: 32px;
+  height: 32px;
+  border: 1px solid #d5e3d0;
+  border-radius: 8px;
+  color: var(--olive-dark);
+  background: #fff;
+  transition: background 0.2s ease, border-color 0.2s ease, transform 0.2s ease;
+}
+.uploads-song-view:hover,
+.uploads-song-view:focus-visible {
+  border-color: #a8c29f;
+  background: #edf5e9;
+  transform: translateY(-1px);
+}
 .uploads-profile-card button:last-child,
 .danger-text,
 .danger-button {
@@ -4578,6 +4596,11 @@ body.upload-mode .upload-page {
 }
 /* Consistent editor dialog treatment for the private workspace. */
 .uploads-song-modal {
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: thin;
+  scrollbar-color: #b9cbb2 transparent;
   width: min(100%, 840px);
   max-height: min(800px, calc(100dvh - 44px));
   margin: 0;
@@ -4674,6 +4697,47 @@ body.upload-mode .upload-page {
 .uploads-advanced-fields[open] summary::after {
   content: "−";
 }
+.lyrics-editor-panel {
+  border-color: #cddfc7;
+  background: #fbfdf9;
+}
+.lyrics-editor-panel summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.lyrics-editor-status {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 500;
+}
+.lyrics-editor-panel[open] .lyrics-editor-status {
+  color: var(--olive);
+}
+.lyrics-editor-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+  padding: 0 14px 14px;
+}
+.lyrics-editor-grid label {
+  display: grid;
+  gap: 7px;
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 700;
+}
+.lyrics-editor-grid textarea {
+  min-height: 360px;
+  resize: vertical;
+  line-height: 1.55;
+}
+.lyrics-editor-grid textarea:focus {
+  outline: none;
+  border-color: #91ad87;
+  box-shadow: 0 0 0 3px #91ad8722;
+}
 .uploads-advanced-fields .uploads-form-grid {
   padding: 0 14px 14px;
 }
@@ -4688,6 +4752,9 @@ body.upload-mode .upload-page {
   }
   .uploads-field-wide {
     grid-column: auto;
+  }
+  .lyrics-editor-grid {
+    grid-template-columns: 1fr;
   }
 }
 .page-search {

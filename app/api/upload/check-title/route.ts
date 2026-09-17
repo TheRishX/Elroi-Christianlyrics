@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { getSongs } from "@/lib/api";
 import { cookieName, validSession } from "@/lib/auth";
 import { Song } from "@/lib/types";
+import { lyricSearchText } from "@/lib/lyrics";
 
 function key(value: string) {
   return value.normalize("NFKD").replace(/[\u0300-\u036f]/g, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
@@ -21,7 +22,7 @@ function titleNames(song: Song) {
   return [song.title, song.romanTitle || "", ...(song.alternateTitles || []), ...(song.romanAlternateTitles || [])].map(songNameKey).filter(Boolean);
 }
 function lyricWords(song: Song) {
-  return key((song.lyrics || []).flatMap((section) => [section.original, section.roman || ""]).join(" ")).split(" ").filter(Boolean);
+  return key((song.lyrics || []).map(lyricSearchText).join(" ")).split(" ").filter(Boolean);
 }
 function lyricSimilarity(lyrics: string, second: Song) {
   const firstWords = key(lyrics).split(" ").filter(Boolean), secondWords = lyricWords(second);
@@ -66,7 +67,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json();
     const title = String(body.title || "").trim();
-    const lyrics = Array.isArray(body.lyrics) ? body.lyrics.flatMap((section: { original?: string; roman?: string }) => [section.original || "", section.roman || ""]).join(" ") : String(body.lyrics || "");
+    const lyrics = Array.isArray(body.lyrics) ? body.lyrics.map((section: { original?: string; roman?: string; originalLines?: string[]; romanLines?: string[] }) => [...(section.originalLines || (section.original || "").split("\n")), ...(section.romanLines || (section.roman || "").split("\n"))].join(" ")).join(" ") : String(body.lyrics || "");
     if (!title) return NextResponse.json({ items: [] });
     return NextResponse.json(await findMatches(title, lyrics), { headers: { "Cache-Control": "no-store" } });
   } catch {
