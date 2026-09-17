@@ -1,4 +1,6 @@
-import { OttManager } from "@/components/OttManager";
-export const dynamic = "force-dynamic";
-export const metadata = { title: "OTT video settings | Elroi Tunes" };
-export default function OttPage() { return <OttManager />; }
+import type { Metadata } from "next";
+import { OttExperience } from "@/components/OttExperience";
+import { getVideoCategories, getVideos } from "@/lib/api";
+export const metadata: Metadata = { title: "Elroi OTT — Faith, hope & stories", description: "Christian worship, messages, testimonies, and stories in English, Nepali, and Hindi." };
+export const revalidate = 120;
+export default async function OttPage() { const [videos, categories] = await Promise.all([getVideos(), getVideoCategories()]); return <OttExperience videos={videos} categories={categories} />; }

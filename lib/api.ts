@@ -123,12 +123,17 @@ export async function getVideoCategories(fresh = false): Promise<VideoCategory[]
     return Array.isArray(data) ? data : data.items || [];
   } catch { return []; }
 }
-export async function getVideos(options: { category?: string; featured?: boolean; fresh?: boolean } = {}): Promise<Video[]> {
+export async function getVideos(options: { category?: string; featured?: boolean; language?: Language; type?: string; reels?: boolean; q?: string; limit?: number; fresh?: boolean } = {}): Promise<Video[]> {
   if (!base) return [];
   try {
     const url = new URL(`${base}/videos`);
     if (options.category) url.searchParams.set("category", options.category);
     if (options.featured) url.searchParams.set("featured", "1");
+    if (options.language) url.searchParams.set("language", options.language);
+    if (options.type) url.searchParams.set("type", options.type);
+    if (options.reels) url.searchParams.set("reels", "1");
+    if (options.q) url.searchParams.set("q", options.q);
+    if (options.limit) url.searchParams.set("limit", String(options.limit));
     const response = await fetch(url, options.fresh ? { cache: "no-store" } : { next: { revalidate: 120, tags: ["videos"] } });
     if (!response.ok) return [];
     const data = await response.json();
