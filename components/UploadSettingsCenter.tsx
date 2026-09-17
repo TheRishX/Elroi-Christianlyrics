@@ -1,6 +1,6 @@
 "use client";
 import Link from "next/link";
-import { Eye, FileText, ListMusic, Search } from "lucide-react";
+import { Eye, FileText, ListMusic, Search, Trash2 } from "lucide-react";
 import {
   ChangeEvent,
   PointerEvent,
@@ -12,6 +12,10 @@ import {
 import { Artist, Song } from "@/lib/types";
 import { lyricText as sectionLyricText, textToLyricLines } from "@/lib/lyrics";
 import { ArtistPicker } from "@/components/UploadPortal";
+
+type DeleteRequest =
+  | { kind: "song"; item: Song }
+  | { kind: "artist"; item: Artist };
 
 function slug(value: string) {
   return value
@@ -96,6 +100,7 @@ export function UploadSettingsCenter() {
     [cropZoom, setCropZoom] = useState(1),
     [cropOffset, setCropOffset] = useState({ x: 0, y: 0 }),
     [selectedSong, setSelectedSong] = useState<Song | null>(null),
+    [deleteRequest, setDeleteRequest] = useState<DeleteRequest | null>(null),
     [editorSection, setEditorSection] = useState<"details" | "seo" | "lyrics">("details"),
     [lyricsDirty, setLyricsDirty] = useState(false),
     [linkArtist, setLinkArtist] = useState<Artist | null>(null),
@@ -327,13 +332,10 @@ export function UploadSettingsCenter() {
       setSaving(false);
     }
   }
-  async function deleteArtist(artist: Artist) {
-    if (
-      !confirm(
-        `Delete “${artist.name}” and remove this credit from all songs? This cannot be undone.`,
-      )
-    )
-      return;
+  function deleteArtist(artist: Artist) {
+    setDeleteRequest({ kind: "artist", item: artist });
+  }
+  async function performDeleteArtist(artist: Artist) {
     setSaving(true);
     try {
       const target = artist.id
@@ -490,8 +492,10 @@ export function UploadSettingsCenter() {
       setSaving(false);
     }
   }
-  async function deleteSong(song: Song) {
-    if (!confirm(`Move “${song.title}” to trash? You can restore it later.`)) return;
+  function deleteSong(song: Song) {
+    setDeleteRequest({ kind: "song", item: song });
+  }
+  async function performDeleteSong(song: Song) {
     setSongs((current) => current.filter((item) => item.id !== song.id));
     try {
       const response = await fetch(`/api/upload/songs?id=${song.id}`, {
