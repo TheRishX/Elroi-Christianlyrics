@@ -5,13 +5,25 @@ import { validateSong } from "@/lib/upload";
 import { publisherBase, publisherHeaders, UpstreamError, upstreamResponse, wordpressFetch } from "@/lib/wordpress";
 
 export const runtime = "nodejs";
+function compatibilityLyrics(value: unknown) {
+  if (!Array.isArray(value)) return value;
+  return value.map((section) => {
+    if (!section || typeof section !== "object") return section;
+    const item = section as Record<string, unknown>;
+    return {
+      ...item,
+      original: Array.isArray(item.originalLines) ? item.originalLines.map(String).join("\n") : "",
+      roman: Array.isArray(item.romanLines) ? item.romanLines.map(String).join("\n") : "",
+    };
+  });
+}
 export async function POST(request: Request) {
   if (!validSession((await cookies()).get(cookieName)?.value)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   try {
     const song = validateSong(await request.json());
     const idempotencyKey = request.headers.get("idempotency-key");
     if (!idempotencyKey || idempotencyKey.length > 128) return NextResponse.json({ error: "An idempotency key is required." }, { status: 400 });
-    const response = await wordpressFetch(`${publisherBase()}/songs`, { method: "POST", headers: { ...publisherHeaders(), "Idempotency-Key": idempotencyKey }, body: JSON.stringify(song) });
+    const response = await wordpressFetch(`${publisherBase()}/songs`, { method: "POST", headers: { ...publisherHeaders(), "Idempotency-Key": idempotencyKey }, body: JSON.stringify({ ...song, lyrics: compatibilityLyrics(song.lyrics) }) });
     const data = await response.json().catch(() => ({}));
     if (!response.ok) upstreamResponse(data, response, "WordPress could not create this song.");
     return NextResponse.json(data, { status: response.status });
