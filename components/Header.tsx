@@ -26,7 +26,7 @@ function portalNavigation(path: string) {
 function isPortalPath(path: string) { return path === "/upload" || path === "/uploads" || path === "/studio"; }
 function OttPortalLink({ children, className = "", ariaCurrent }: { children: React.ReactNode; className?: string; ariaCurrent?: "page" }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
-  const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
+  const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 1050); };
   const transition = entering && typeof document !== "undefined"
     ? createPortal(
         <div
