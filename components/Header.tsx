@@ -3,7 +3,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { clearOttGuest } from "@/lib/ott-guest";
-import { ArrowLeft, Bookmark, BookOpen, House, ListVideo, Menu, Search, Sparkles, UsersRound, Video, X } from "lucide-react";
+import { ArrowLeft, Bookmark, BookOpen, House, ListVideo, Menu, Search, Sparkles, UploadCloud, UsersRound, Video, X } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
   { href: "/browse", label: "Lyrics", icon: BookOpen },
@@ -11,6 +11,13 @@ const items = [
   { href: "/ott", label: "OTT", icon: Video },
 ];
 const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
+const portalItems = [
+  { href: "/upload", label: "Publish", icon: UploadCloud },
+  { href: "/uploads", label: "Manage", icon: UsersRound },
+  { href: "/studio", label: "Studio", icon: Video },
+  { href: "/", label: "Home", icon: House },
+];
+function isPortalPath(path: string) { return path === "/upload" || path === "/uploads" || path === "/studio"; }
 function OttPortalLink({ children, className = "", ariaCurrent }: { children: React.ReactNode; className?: string; ariaCurrent?: "page" }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
   const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
@@ -18,6 +25,7 @@ function OttPortalLink({ children, className = "", ariaCurrent }: { children: Re
 }
 export function DesktopMenu() {
   const path = usePathname();
+  const portalMode = isPortalPath(path);
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
@@ -29,7 +37,7 @@ export function DesktopMenu() {
       className="section-nav"
       aria-label="Main navigation"
     >
-      {[...items, savedItem].map((i) => (
+      {(portalMode ? portalItems : [...items, savedItem]).map((i) => (
         i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="section-nav-ott"><span className="section-nav-icon"><i.icon size={20} strokeWidth={1.8} /></span>{i.label}</OttPortalLink> :
         <Link
           key={i.href}
@@ -57,6 +65,7 @@ export function Header() {
   const closeMore = () => { setMoreOpen(false); window.setTimeout(() => moreTrigger.current?.focus(), 0); };
   const openMore = (event: React.MouseEvent<HTMLButtonElement>) => { moreTrigger.current = event.currentTarget; setMoreOpen(true); };
   const ottMode = path.startsWith("/ott") && !path.startsWith("/ott/settings");
+  const portalMode = isPortalPath(path);
   useEffect(() => { if (!moreOpen) return; const onKey = (event: KeyboardEvent) => { if (event.key === "Escape") closeMore(); }; window.addEventListener("keydown", onKey); return () => window.removeEventListener("keydown", onKey); }, [moreOpen]);
   useEffect(() => { setMoreOpen(false); setSearchOpen(false); }, [path]);
   useEffect(() => { if (searchOpen) searchInput.current?.focus(); }, [searchOpen]);
@@ -98,10 +107,10 @@ export function Header() {
             </button>
           </nav>
         )}
-        {path !== "/upload" && <DesktopMenu />}
+        <DesktopMenu />
       </div>
       <nav className="bottom-nav" aria-label="App navigation">
-        {[...items, savedItem].map((i) => (
+        {(portalMode ? portalItems : [...items, savedItem]).map((i) => (
           i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="bottom-nav-ott"><span className="nav-icon"><i.icon size={22} strokeWidth={1.8} /></span><span>{i.label}</span></OttPortalLink> :
           <Link
             key={i.href}
