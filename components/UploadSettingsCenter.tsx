@@ -982,17 +982,17 @@ export function UploadSettingsCenter() {
               </label>}
               {editorSection === "lyrics" && <div className="lyrics-editor-panel">
                 <div className="lyrics-editor-panel-heading">
-                  <span>Hindi and Hinglish lyrics</span>
+                  <span>हिन्दी and Hindi lyrics</span>
                   <span className="lyrics-editor-status">{lyricsDirty ? "Unsaved changes" : "Ready to edit"}</span>
                 </div>
                 <p className="uploads-readonly-note">
                   Keep the same section headings in both fields, for example
                   <code>[Verse 1]</code>. Each Hindi section is saved together
-                  with its matching Hinglish section.
+                  with its matching Hindi section.
                 </p>
                 <div className="lyrics-editor-grid">
                   <label>
-                    Hindi / Original lyrics
+                    हिन्दी lyrics
                     <textarea
                       rows={18}
                       value={songForm.lyrics}
@@ -1003,7 +1003,7 @@ export function UploadSettingsCenter() {
                     />
                   </label>
                   <label>
-                    Hinglish / Roman lyrics
+                    Hindi lyrics
                     <textarea
                       rows={18}
                       value={songForm.romanLyrics}

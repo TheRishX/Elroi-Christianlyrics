@@ -99,7 +99,7 @@ function nativeLabel(language: UploadSong["language"]) {
     ? "English lyrics"
     : language === "nepali"
       ? "Nepali lyrics"
-      : "Hindi lyrics";
+      : "हिन्दी lyrics";
 }
 
 export function ArtistPicker({
@@ -691,13 +691,13 @@ export function UploadPortal() {
               </label>
               {song.language !== "english" && (
                 <label>
-                  Roman lyrics <span className="optional">optional</span>
+                  Hindi lyrics <span className="optional">optional</span>
                   <textarea
                     rows={15}
                     value={romanLyrics}
                     onChange={(event) => setRomanLyrics(event.target.value)}
                     placeholder={
-                      "[Verse 1]\nPaste matching Roman / Hinglish lyrics here…"
+                      "[Verse 1]\nPaste matching Hindi lyrics here…"
                     }
                   />
                 </label>
