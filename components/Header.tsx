@@ -2,6 +2,7 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { clearOttGuest } from "@/lib/ott-guest";
 import { ArrowLeft, Bookmark, BookOpen, House, ListVideo, Menu, Search, Sparkles, UploadCloud, UsersRound, Video, X } from "lucide-react";
 const items = [
@@ -26,7 +27,10 @@ function isPortalPath(path: string) { return path === "/upload" || path === "/up
 function OttPortalLink({ children, className = "", ariaCurrent }: { children: React.ReactNode; className?: string; ariaCurrent?: "page" }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
   const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
-  return <>{entering && <div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>}<button type="button" aria-current={ariaCurrent} className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
+  const transition = entering && typeof document !== "undefined"
+    ? createPortal(<div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>, document.body)
+    : null;
+  return <>{transition}<button type="button" aria-current={ariaCurrent} className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
 }
 export function DesktopMenu() {
   const path = usePathname();
