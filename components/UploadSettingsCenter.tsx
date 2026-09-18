@@ -982,7 +982,7 @@ export function UploadSettingsCenter() {
               </label>}
               {editorSection === "lyrics" && <div className="lyrics-editor-panel">
                 <div className="lyrics-editor-panel-heading">
-                  <span>हिन्दी and Hindi lyrics</span>
+                  <span>{songForm.language === "nepali" ? "नेपाली and Nepali lyrics" : "हिन्दी and Hindi lyrics"}</span>
                   <span className="lyrics-editor-status">{lyricsDirty ? "Unsaved changes" : "Ready to edit"}</span>
                 </div>
                 <p className="uploads-readonly-note">
@@ -992,7 +992,7 @@ export function UploadSettingsCenter() {
                 </p>
                 <div className="lyrics-editor-grid">
                   <label>
-                    हिन्दी lyrics
+                    {songForm.language === "nepali" ? "नेपाली lyrics" : "हिन्दी lyrics"}
                     <textarea
                       rows={18}
                       value={songForm.lyrics}
@@ -1003,7 +1003,7 @@ export function UploadSettingsCenter() {
                     />
                   </label>
                   <label>
-                    Hindi lyrics
+                    {songForm.language === "nepali" ? "Nepali lyrics" : "Hindi lyrics"}
                     <textarea
                       rows={18}
                       value={songForm.romanLyrics}
