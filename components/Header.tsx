@@ -72,9 +72,10 @@ export function Header() {
   useEffect(() => { if (moreOpen) moreClose.current?.focus(); }, [moreOpen]);
   useEffect(() => {
     document.body.classList.toggle("upload-mode", path === "/upload");
+    document.body.classList.toggle("portal-mode", portalMode);
     document.body.classList.toggle("ott-mode", ottMode);
-    return () => { document.body.classList.remove("upload-mode"); document.body.classList.remove("ott-mode"); };
-  }, [path, ottMode]);
+    return () => { document.body.classList.remove("upload-mode"); document.body.classList.remove("portal-mode"); document.body.classList.remove("ott-mode"); };
+  }, [path, ottMode, portalMode]);
   const active = (href: string) =>
     href === "/browse"
       ? path === "/browse" || /^\/(hindi|nepali|english)/.test(path)
@@ -109,7 +110,7 @@ export function Header() {
         )}
         <DesktopMenu />
       </div>
-      <nav className="bottom-nav" aria-label="App navigation">
+      <nav className={`bottom-nav${portalMode ? " portal-bottom-nav" : ""}`} aria-label={portalMode ? "Portal navigation" : "App navigation"}>
         {(portalMode ? portalItems : [...items, savedItem]).map((i) => (
           i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="bottom-nav-ott"><span className="nav-icon"><i.icon size={22} strokeWidth={1.8} /></span><span>{i.label}</span></OttPortalLink> :
           <Link
