@@ -4384,6 +4384,48 @@ body.portal-mode {
   font-size: 10px;
   opacity: 0.72;
 }
+/* The OTT transition is rendered by the shared header before OTT's own
+   stylesheet loads, so keep its full-screen shell in the global stylesheet. */
+.ott-portal {
+  position: fixed;
+  z-index: 200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  align-content: center;
+  gap: 12px;
+  width: 100vw;
+  height: 100dvh;
+  color: #fffaf0;
+  background: radial-gradient(ellipse at 50% 76%, rgb(219 183 105 / 24%), transparent 22%), linear-gradient(180deg, #1a251b, #090d09 72%);
+}
+.ott-portal::before {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(110deg, transparent 32%, rgb(219 183 105 / 16%) 50%, transparent 68%);
+  animation: global-ott-sweep .76s ease-out;
+  content: "";
+  pointer-events: none;
+}
+.ott-portal span {
+  position: relative;
+  color: #dbb769;
+  font-size: 65px;
+  text-shadow: 0 0 48px rgb(219 183 105 / 60%);
+}
+.ott-portal strong,
+.ott-portal small {
+  position: relative;
+}
+.ott-portal strong { font-size: 24px; }
+.ott-portal small { color: #b8c8ad; }
+@keyframes global-ott-sweep {
+  from { transform: translateX(-100%); }
+  to { transform: translateX(100%); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .ott-portal::before { animation: none; }
+}
 .upload-gate {
   min-height: calc(100vh - 104px);
   box-sizing: border-box;
