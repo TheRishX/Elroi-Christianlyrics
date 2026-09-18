@@ -3,15 +3,9 @@ import Link from "next/link";
 import {
   Eye,
   FileText,
-  House,
-  Link2 as LinkIcon,
   ListMusic,
-  Music2,
   Search,
   Trash2,
-  UploadCloud,
-  UsersRound,
-  Video,
 } from "lucide-react";
 import {
   ChangeEvent,
@@ -151,10 +145,6 @@ export function UploadSettingsCenter() {
   const cropViewport = useRef<HTMLDivElement>(null),
     cropImage = useRef<HTMLImageElement>(null),
     dragStart = useRef({ x: 0, y: 0, offsetX: 0, offsetY: 0 });
-  useEffect(() => {
-    document.body.classList.add("uploads-management-mode");
-    return () => document.body.classList.remove("uploads-management-mode");
-  }, []);
   async function load() {
     const [artistResponse, songResponse] = await Promise.all([
       fetch("/api/upload/artists", { cache: "no-store" }),
@@ -1143,51 +1133,6 @@ export function UploadSettingsCenter() {
           </div>
         </div>
       )}
-      <nav className="uploads-bottom-nav" aria-label="Upload management navigation">
-        <button
-          className={tab === "artists" ? "active" : ""}
-          onClick={() => {
-            setTab("artists");
-            setQuery("");
-          }}
-        >
-          <UsersRound size={19} aria-hidden="true" />
-          <span>Artists</span>
-        </button>
-        <button
-          className={tab === "songs" ? "active" : ""}
-          onClick={() => {
-            setTab("songs");
-            setQuery("");
-          }}
-        >
-          <Music2 size={19} aria-hidden="true" />
-          <span>Songs</span>
-        </button>
-        <button
-          className={tab === "links" ? "active" : ""}
-          onClick={() => {
-            setTab("links");
-            setQuery("");
-            setLinkArtist(null);
-          }}
-        >
-          <LinkIcon size={19} aria-hidden="true" />
-          <span>Artist links</span>
-        </button>
-        <Link className="portal-link" href="/upload">
-          <UploadCloud size={19} aria-hidden="true" />
-          <span>Upload</span>
-        </Link>
-        <Link className="portal-link" href="/studio">
-          <Video size={19} aria-hidden="true" />
-          <span>Studio</span>
-        </Link>
-        <Link className="portal-link" href="/">
-          <House size={19} aria-hidden="true" />
-          <span>Home</span>
-        </Link>
-      </nav>
     </main>
   );
 }

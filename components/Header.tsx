@@ -14,9 +14,14 @@ const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
 const portalItems = [
   { href: "/upload", label: "Upload", icon: UploadCloud },
   { href: "/uploads", label: "Uploads", icon: UsersRound },
-  { href: "/studio", label: "Studio", icon: Video },
-  { href: "/", label: "Home", icon: House },
 ];
+const studioItems = [
+  ...portalItems,
+  { href: "/studio", label: "Studio", icon: Video },
+];
+function portalNavigation(path: string) {
+  return path === "/studio" ? studioItems : portalItems;
+}
 function isPortalPath(path: string) { return path === "/upload" || path === "/uploads" || path === "/studio"; }
 function OttPortalLink({ children, className = "", ariaCurrent }: { children: React.ReactNode; className?: string; ariaCurrent?: "page" }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
@@ -37,7 +42,7 @@ export function DesktopMenu() {
       className="section-nav"
       aria-label="Main navigation"
     >
-      {(portalMode ? portalItems : [...items, savedItem]).map((i) => (
+      {(portalMode ? portalNavigation(path) : [...items, savedItem]).map((i) => (
         i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="section-nav-ott"><span className="section-nav-icon"><i.icon size={20} strokeWidth={1.8} /></span>{i.label}</OttPortalLink> :
         <Link
           key={i.href}
@@ -111,7 +116,7 @@ export function Header() {
         <DesktopMenu />
       </div>
       <nav className={`bottom-nav${portalMode ? " portal-bottom-nav" : ""}`} aria-label={portalMode ? "Portal navigation" : "App navigation"}>
-        {(portalMode ? portalItems : [...items, savedItem]).map((i) => (
+        {(portalMode ? portalNavigation(path) : [...items, savedItem]).map((i) => (
           i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="bottom-nav-ott"><span className="nav-icon"><i.icon size={22} strokeWidth={1.8} /></span><span>{i.label}</span></OttPortalLink> :
           <Link
             key={i.href}
