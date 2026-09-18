@@ -53,11 +53,24 @@ export async function getSongs(language?: Language, fresh = false): Promise<Song
   try {
     const url = new URL(`${base}/songs`);
     if (language) url.searchParams.set("language", language);
-    const res = await fetch(url, fresh ? { cache: "no-store" } : {
+    url.searchParams.set("per_page", "50");
+    const requestInit = fresh ? { cache: "no-store" as const } : {
       next: { revalidate: 300, tags: ["songs"] },
-    });
-    if (!res.ok) throw new Error("WordPress unavailable");
-    return listFrom(await res.json()).map(repairSong);
+    };
+    async function fetchPage(page: number) {
+      const pageUrl = new URL(url);
+      pageUrl.searchParams.set("page", String(page));
+      const res = await fetch(pageUrl, requestInit);
+      if (!res.ok) throw new Error("WordPress unavailable");
+      return res.json();
+    }
+    const firstPage = await fetchPage(1);
+    const total = Number(firstPage?.total);
+    const pageCount = Number.isFinite(total) ? Math.ceil(total / 50) : 1;
+    const remainingPages = await Promise.all(
+      Array.from({ length: Math.max(0, pageCount - 1) }, (_, index) => fetchPage(index + 2)),
+    );
+    return [firstPage, ...remainingPages].flatMap(listFrom).map(repairSong);
   } catch {
     return language
       ? mockSongs.filter((s) => s.language === language)
