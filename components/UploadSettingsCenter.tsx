@@ -852,7 +852,7 @@ export function UploadSettingsCenter() {
               </div>
               {editorSection === "details" && <div className="uploads-form-grid">
                 <label>
-                  Title
+                  हिन्दी title
                   <input
                     value={songForm.title}
                     onChange={(event) =>
