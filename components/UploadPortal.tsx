@@ -589,7 +589,7 @@ export function UploadPortal() {
             <span className="eyebrow">01 / SONG</span>
             <div className="field-grid">
               <label>
-                Hindi title *
+                Hinglish title *
                 <div className="title-check-row">
                   <input
                     value={song.title}
@@ -600,7 +600,7 @@ export function UploadPortal() {
                       setPendingPublish(null);
                       setCheckError("");
                     }}
-                    placeholder="जैसे यीशु तेरा नाम"
+                    placeholder="e.g. Yeshu Tera Naam"
                   />
                   <button
                     type="button"
