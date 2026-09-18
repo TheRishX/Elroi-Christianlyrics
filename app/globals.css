@@ -3965,32 +3965,6 @@ svg {
   color: #425047;
   cursor: pointer;
 }
-.upload-portal-actions {
-  display: grid;
-  justify-items: end;
-  gap: 12px;
-}
-.upload-portal-links {
-  display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  gap: 7px;
-}
-.upload-portal-links a {
-  padding: 8px 11px;
-  border: 1px solid #d4ded4;
-  border-radius: 999px;
-  color: #526158;
-  background: #fff;
-  font-size: 12px;
-  font-weight: 700;
-  text-decoration: none;
-}
-.upload-portal-links a[aria-current="page"] {
-  border-color: #c5dbc7;
-  color: #245a39;
-  background: #edf4ee;
-}
 .upload-grid {
   display: grid;
   grid-template-columns: minmax(280px, 0.7fr) minmax(480px, 1.3fr);
@@ -4197,13 +4171,6 @@ svg {
   }
   .upload-header {
     display: block;
-  }
-  .upload-portal-actions {
-    justify-items: start;
-    margin-top: 1rem;
-  }
-  .upload-portal-links {
-    justify-content: flex-start;
   }
   .upload-logout {
     margin-top: 1rem;
