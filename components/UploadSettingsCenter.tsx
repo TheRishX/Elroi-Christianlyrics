@@ -3,6 +3,7 @@ import Link from "next/link";
 import {
   Eye,
   FileText,
+  Link2 as LinkIcon,
   ListMusic,
   Search,
   Trash2,
@@ -1042,10 +1043,22 @@ export function UploadSettingsCenter() {
         </section>
       ) : (
         <section className="uploads-list artist-links-panel">
+          <div className="artist-links-intro">
+            <div className="artist-links-intro-icon" aria-hidden="true">
+              <LinkIcon size={21} />
+            </div>
+            <div>
+              <span className="eyebrow">ARTIST CONNECTIONS</span>
+              <h2>Connect artists to songs</h2>
+              <p>Choose an artist to review and update the songs connected to their profile.</p>
+            </div>
+          </div>
           <div className="artist-link-picker">
-            <label>
-              Artist to connect
+            <label htmlFor="artist-link-select">
+              <span>Artist to connect</span>
+              <small>Start by choosing one artist</small>
               <select
+                id="artist-link-select"
                 value={linkArtist?.id || linkArtist?.slug || ""}
                 onChange={(event) =>
                   setLinkArtist(
@@ -1063,14 +1076,22 @@ export function UploadSettingsCenter() {
                 ))}
               </select>
             </label>
-            {linkArtist && (
-              <p className="uploads-readonly-note">
-                {linkedSongs.length} song{linkedSongs.length === 1 ? "" : "s"} currently connected. Use the controls below to add or remove this artist.
-              </p>
-            )}
           </div>
+          {linkArtist && (
+            <div className="artist-link-summary">
+              <div>
+                <strong>{linkArtist.name}</strong>
+                <span>{linkedSongs.length} connected song{linkedSongs.length === 1 ? "" : "s"}</span>
+              </div>
+              <span className="artist-link-summary-count">{linkSongs.length} available</span>
+            </div>
+          )}
           {!linkArtist ? (
-            <div className="manager-empty"><h3>Select an artist</h3><p>Then connect or remove that artist from uploaded songs.</p></div>
+            <div className="manager-empty artist-links-empty">
+              <div className="artist-links-empty-icon" aria-hidden="true"><LinkIcon size={22} /></div>
+              <h3>Choose an artist to get started</h3>
+              <p>Connected songs will appear here, with simple controls to add or remove the artist.</p>
+            </div>
           ) : (
             <div className="uploads-song-list">
               {linkSongs.map((song) => {
@@ -1080,6 +1101,9 @@ export function UploadSettingsCenter() {
                 return (
                   <article key={song.id} className="uploads-song-row">
                     <div><strong>{song.title}</strong><span>{song.artists?.length ? song.artists.join(", ") : song.artist} · {song.language}</span></div>
+                    <span className={`artist-link-status${connected ? " is-connected" : ""}`}>
+                      {connected ? "Connected" : "Not connected"}
+                    </span>
                     <button disabled={saving} onClick={() => updateArtistLink(song, !connected)}>
                       {connected ? "Remove artist" : "Connect artist"}
                     </button>
