@@ -589,7 +589,7 @@ export function UploadPortal() {
             <span className="eyebrow">01 / SONG</span>
             <div className="field-grid">
               <label>
-                हिन्दी title *
+                Hindi title *
                 <div className="title-check-row">
                   <input
                     value={song.title}
@@ -614,7 +614,7 @@ export function UploadPortal() {
                 </div>
               </label>
               <label>
-                Roman title
+                हिन्दी title
                 <input
                   value={song.romanTitle || ""}
                   onChange={(event) => update("romanTitle", event.target.value)}
