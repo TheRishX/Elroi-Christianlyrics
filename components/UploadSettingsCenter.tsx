@@ -961,7 +961,7 @@ export function UploadSettingsCenter() {
               </div>}
               {editorSection === "seo" && <div className="uploads-form-grid">
                   <label>Alternate titles <span className="optional">separate with commas</span><input value={songForm.alternateTitles} onChange={(event) => setSongForm({ ...songForm, alternateTitles: event.target.value })} /></label>
-                  <label>Roman alternate titles <span className="optional">separate with commas</span><input value={songForm.romanAlternateTitles} onChange={(event) => setSongForm({ ...songForm, romanAlternateTitles: event.target.value })} /></label>
+                  <label>हिन्दी alternate titles <span className="optional">separate with commas</span><input value={songForm.romanAlternateTitles} onChange={(event) => setSongForm({ ...songForm, romanAlternateTitles: event.target.value })} /></label>
                   <label>SEO title<input value={songForm.seoTitle} onChange={(event) => setSongForm({ ...songForm, seoTitle: event.target.value })} /></label>
                   <label>Last reviewed<input type="date" value={songForm.lastReviewedAt} onChange={(event) => setSongForm({ ...songForm, lastReviewedAt: event.target.value })} /></label>
                   <label className="uploads-field-wide">SEO description<textarea rows={3} value={songForm.seoDescription} onChange={(event) => setSongForm({ ...songForm, seoDescription: event.target.value })} /></label>

@@ -618,7 +618,7 @@ export function UploadPortal() {
                 <input
                   value={song.romanTitle || ""}
                   onChange={(event) => update("romanTitle", event.target.value)}
-                  placeholder="Roman / Hinglish title"
+                  placeholder="हिन्दी title"
                 />
               </label>
               <label>
@@ -819,7 +819,7 @@ export function UploadPortal() {
               />
             </label>
             <label>
-              Roman alternate titles{" "}
+              हिन्दी alternate titles{" "}
               <span className="optional">separate with commas</span>
               <input
                 value={(song.romanAlternateTitles || []).join(", ")}
