@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   CheckCircle2,
@@ -564,15 +565,23 @@ export function UploadPortal() {
             WordPress.
           </p>
         </div>
-        <button
-          className="upload-logout"
-          onClick={async () => {
-            await fetch("/api/admin/logout", { method: "POST" });
-            window.location.reload();
-          }}
-        >
-          Sign out
-        </button>
+        <div className="upload-portal-actions">
+          <nav className="upload-portal-links" aria-label="Publishing portal links">
+            <Link href="/upload" aria-current="page">Upload</Link>
+            <Link href="/uploads">Uploads</Link>
+            <Link href="/studio">Studio</Link>
+            <Link href="/">Home</Link>
+          </nav>
+          <button
+            className="upload-logout"
+            onClick={async () => {
+              await fetch("/api/admin/logout", { method: "POST" });
+              window.location.reload();
+            }}
+          >
+            Sign out
+          </button>
+        </div>
       </header>
       {message && (
         <div
