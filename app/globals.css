@@ -4290,10 +4290,23 @@ body.uploads-management-mode .uploads-tabs {
   cursor: pointer;
 }
 .uploads-bottom-nav button.active,
-.uploads-bottom-nav a:hover,
 .uploads-bottom-nav button:hover {
   color: var(--olive-dark);
   font-weight: 700;
+}
+.uploads-bottom-nav button.active {
+  border-radius: 10px;
+  background: #e5efdd;
+  box-shadow: inset 0 0 0 1px #d9e6cf;
+}
+.uploads-bottom-nav a.portal-link {
+  color: #a3aaa0;
+  font-size: 10px;
+  opacity: 0.72;
+}
+.uploads-bottom-nav a.portal-link:hover {
+  color: var(--olive-dark);
+  opacity: 1;
 }
 .upload-gate {
   min-height: calc(100vh - 104px);

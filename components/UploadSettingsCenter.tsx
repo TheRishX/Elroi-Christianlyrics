@@ -1175,15 +1175,15 @@ export function UploadSettingsCenter() {
           <LinkIcon size={19} aria-hidden="true" />
           <span>Artist links</span>
         </button>
-        <Link href="/upload">
+        <Link className="portal-link" href="/upload">
           <UploadCloud size={19} aria-hidden="true" />
           <span>Upload</span>
         </Link>
-        <Link href="/studio">
+        <Link className="portal-link" href="/studio">
           <Video size={19} aria-hidden="true" />
           <span>Studio</span>
         </Link>
-        <Link href="/">
+        <Link className="portal-link" href="/">
           <House size={19} aria-hidden="true" />
           <span>Home</span>
         </Link>
