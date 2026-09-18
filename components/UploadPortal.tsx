@@ -618,7 +618,7 @@ export function UploadPortal() {
                 <input
                   value={song.romanTitle || ""}
                   onChange={(event) => update("romanTitle", event.target.value)}
-                  placeholder="हिन्दी title"
+                  placeholder="जैसे यीशु तेरा नाम"
                 />
               </label>
               <label>
