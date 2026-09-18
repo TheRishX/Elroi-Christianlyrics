@@ -4193,7 +4193,7 @@ body.upload-mode {
   background: #f6f7f4;
 }
 body.upload-mode .section-nav,
-body.upload-mode .bottom-nav {
+body.upload-mode .bottom-nav:not(.portal-bottom-nav) {
   display: none;
 }
 body.upload-mode #main {
