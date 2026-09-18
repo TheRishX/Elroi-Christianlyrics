@@ -6,8 +6,8 @@ import { clearOttGuest } from "@/lib/ott-guest";
 import { ArrowLeft, Bookmark, BookOpen, House, ListVideo, Menu, Search, Sparkles, UsersRound, Video, X } from "lucide-react";
 const items = [
   { href: "/", label: "Home", icon: House },
-  { href: "/artists", label: "Artists", icon: UsersRound },
   { href: "/browse", label: "Lyrics", icon: BookOpen },
+  { href: "/artists", label: "Artists", icon: UsersRound },
   { href: "/ott", label: "OTT", icon: Video },
 ];
 const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
