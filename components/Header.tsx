@@ -28,7 +28,24 @@ function OttPortalLink({ children, className = "", ariaCurrent }: { children: Re
   const router = useRouter(); const [entering, setEntering] = useState(false);
   const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
   const transition = entering && typeof document !== "undefined"
-    ? createPortal(<div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>, document.body)
+    ? createPortal(
+        <div
+          className="ott-portal"
+          role="status"
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 2147483647,
+            width: "100vw",
+            height: "100vh",
+          }}
+        >
+          <span>✝</span>
+          <strong>Entering Elroi OTT</strong>
+          <small>A place for faith and hope</small>
+        </div>,
+        document.body,
+      )
     : null;
   return <>{transition}<button type="button" aria-current={ariaCurrent} className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
 }
