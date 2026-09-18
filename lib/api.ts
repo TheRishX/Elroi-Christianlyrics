@@ -1,5 +1,6 @@
 import { songs as mockSongs } from "./mock-data";
 import { AdSettings, Artist, Language, SearchResult, Song, SongSuggestion, Video, VideoCategory } from "./types";
+import { OTT_SEED_STORIES } from "./ott-seed";
 import { lyricLines, normalizeLyricText } from "./lyrics";
 const base = process.env.WORDPRESS_API_URL;
 function listFrom(data: unknown): Song[] {
@@ -120,7 +121,8 @@ export async function getVideoCategories(fresh = false): Promise<VideoCategory[]
     const response = await fetch(`${base}/video-categories`, fresh ? { cache: "no-store" } : { next: { revalidate: 300, tags: ["video-categories"] } });
     if (!response.ok) return [];
     const data = await response.json();
-    return Array.isArray(data) ? data : data.items || [];
+    const items = Array.isArray(data) ? data : data.items || [];
+    return items.map((item: VideoCategory) => ({ ...item, name: item.name.replace(/&amp;/g, "&") }));
   } catch { return []; }
 }
 export async function getVideos(options: { category?: string; featured?: boolean; language?: Language; type?: string; reels?: boolean; q?: string; limit?: number; fresh?: boolean } = {}): Promise<Video[]> {
@@ -137,15 +139,21 @@ export async function getVideos(options: { category?: string; featured?: boolean
     const response = await fetch(url, options.fresh ? { cache: "no-store" } : { next: { revalidate: 120, tags: ["videos"] } });
     if (!response.ok) return [];
     const data = await response.json();
-    return Array.isArray(data) ? data : data.items || [];
+    const items: Video[] = Array.isArray(data) ? data : data.items || [];
+    return items.map(normalizeOttVideo);
   } catch { return []; }
 }
 export async function getVideo(slug: string): Promise<Video | undefined> {
   if (!base) return undefined;
   try {
     const response = await fetch(`${base}/videos/${encodeURIComponent(slug)}`, { next: { revalidate: 120, tags: [`video:${slug}`] } });
-    return response.ok ? await response.json() : undefined;
+    return response.ok ? normalizeOttVideo(await response.json()) : undefined;
   } catch { return undefined; }
+}
+function normalizeOttVideo(video: Video): Video {
+  const seed = OTT_SEED_STORIES.find((item) => item.youtubeId === video.youtubeId);
+  if (!seed) return video;
+  return { ...video, thumbnailUrl: `https://i.ytimg.com/vi/${seed.youtubeId}/hqdefault.jpg`, displayTitle: video.displayTitle || seed.displayTitle, synopsis: video.synopsis || seed.synopsis, language: video.language || seed.language, contentType: video.contentType || seed.contentType, topics: video.topics?.length ? video.topics : seed.topics, featured: video.featured ?? seed.featured, heroRank: video.heroRank || seed.heroRank, shelfRank: video.shelfRank || seed.shelfRank, isReel: video.isReel ?? seed.isReel, channelName: video.channelName || seed.channelName, sourceHealth: video.sourceHealth || "ready", category: video.category ? { ...video.category, name: video.category.name.replace(/&amp;/g, "&") } : video.category };
 }
 function fold(value: string) {
   return value

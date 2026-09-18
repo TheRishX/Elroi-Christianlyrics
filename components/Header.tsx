@@ -11,10 +11,10 @@ const items = [
   { href: "/ott", label: "OTT", icon: Video },
 ];
 const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
-function OttPortalLink({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+function OttPortalLink({ children, className = "", ariaCurrent }: { children: React.ReactNode; className?: string; ariaCurrent?: "page" }) {
   const router = useRouter(); const [entering, setEntering] = useState(false);
   const enter = () => { router.prefetch("/ott"); if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return router.push("/ott"); setEntering(true); window.setTimeout(() => router.push("/ott"), 760); };
-  return <>{entering && <div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>}<button type="button" className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
+  return <>{entering && <div className="ott-portal" role="status"><span>✝</span><strong>Entering Elroi OTT</strong><small>A place for faith and hope</small></div>}<button type="button" aria-current={ariaCurrent} className={className} onMouseEnter={() => router.prefetch("/ott")} onFocus={() => router.prefetch("/ott")} onClick={enter}>{children}</button></>;
 }
 export function DesktopMenu() {
   const path = usePathname();
@@ -30,7 +30,7 @@ export function DesktopMenu() {
       aria-label="Main navigation"
     >
       {[...items, savedItem].map((i) => (
-        i.href === "/ott" ? <OttPortalLink key={i.href} className="section-nav-ott"><span className="section-nav-icon"><i.icon size={20} strokeWidth={1.8} /></span>{i.label}</OttPortalLink> :
+        i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="section-nav-ott"><span className="section-nav-icon"><i.icon size={20} strokeWidth={1.8} /></span>{i.label}</OttPortalLink> :
         <Link
           key={i.href}
           href={i.href}
@@ -101,8 +101,8 @@ export function Header() {
         {path !== "/upload" && <DesktopMenu />}
       </div>
       <nav className="bottom-nav" aria-label="App navigation">
-        {items.map((i) => (
-          i.href === "/ott" ? <OttPortalLink key={i.href} className="bottom-nav-ott"><span className="nav-icon"><i.icon size={22} strokeWidth={1.8} /></span><span>{i.label}</span></OttPortalLink> :
+        {[...items, savedItem].map((i) => (
+          i.href === "/ott" ? <OttPortalLink key={i.href} ariaCurrent={active(i.href) ? "page" : undefined} className="bottom-nav-ott"><span className="nav-icon"><i.icon size={22} strokeWidth={1.8} /></span><span>{i.label}</span></OttPortalLink> :
           <Link
             key={i.href}
             href={i.href}

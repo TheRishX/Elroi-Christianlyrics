@@ -8,7 +8,20 @@ export async function POST(request: Request) {
   if (!validSession((await cookies()).get(cookieName)?.value)) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const { youtubeUrl } = await request.json().catch(() => ({})); const youtubeId = extractId(String(youtubeUrl || ""));
   if (!youtubeId) return NextResponse.json({ error: "Paste a valid YouTube link." }, { status: 400 });
-  const key = process.env.YOUTUBE_API_KEY; if (!key) return NextResponse.json({ error: "YouTube metadata is not configured. Add YOUTUBE_API_KEY to the server environment." }, { status: 503 });
+  const key = process.env.YOUTUBE_API_KEY?.trim();
+  // Keep metadata server-side. In development and on installations without a
+  // quota key, YouTube's public oEmbed endpoint still gives us the safe source
+  // title, channel, and thumbnail needed by OTT Studio.
+  if (!key) {
+    try {
+      const response = await fetch(`https://www.youtube.com/oembed?url=${encodeURIComponent(`https://www.youtube.com/watch?v=${youtubeId}`)}&format=json`, { cache: "no-store" });
+      if (!response.ok) return NextResponse.json({ error: "This YouTube video was not found or is private." }, { status: 404 });
+      const item = await response.json();
+      return NextResponse.json({ youtubeId, title: item.title || "", description: "", thumbnailUrl: item.thumbnail_url || `https://img.youtube.com/vi/${youtubeId}/hqdefault.jpg`, channelName: item.author_name || "", channelId: "", duration: "", sourcePublishedAt: "", embeddable: true, privacyStatus: "public", sourceHealth: "ready" });
+    } catch (error) {
+      return NextResponse.json({ error: error instanceof Error ? error.message : "YouTube metadata could not be loaded." }, { status: 502 });
+    }
+  }
   try {
     const response = await fetch(`https://www.googleapis.com/youtube/v3/videos?part=snippet,contentDetails,status&id=${encodeURIComponent(youtubeId)}&key=${encodeURIComponent(key)}`, { cache: "no-store" });
     if (!response.ok) throw new Error("YouTube could not be reached."); const item = (await response.json()).items?.[0];
