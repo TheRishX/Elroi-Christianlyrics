@@ -12,8 +12,8 @@ const items = [
 ];
 const savedItem = { href: "/bookmarks", label: "Saved", icon: Bookmark };
 const portalItems = [
-  { href: "/upload", label: "Publish", icon: UploadCloud },
-  { href: "/uploads", label: "Manage", icon: UsersRound },
+  { href: "/upload", label: "Upload", icon: UploadCloud },
+  { href: "/uploads", label: "Uploads", icon: UsersRound },
   { href: "/studio", label: "Studio", icon: Video },
   { href: "/", label: "Home", icon: House },
 ];
